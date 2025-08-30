@@ -1,0 +1,353 @@
+/* ===========================
+   KAMEN RIDER TYCOON THEME
+   =========================== */
+:root{
+  --ty-green: #2ecc71;
+  --ty-green-dark: #27ae60;
+  --ty-green-glow: rgba(46,204,113,.45);
+
+  --ty-silver: #dfe6e9;
+  --ty-silver-dark: #b2bec3;
+
+  --ty-bg: #f0f9f2;
+  --ty-bg-strong: #e6f6ea;
+
+  --ty-text: #1a2b1e;
+  --ty-muted: #4b6351;
+
+  --radius: 12px;
+  --shadow: 0 6px 20px rgba(0,0,0,.12);
+  --maxw: 880px;
+
+  /* MỚI: đồng bộ với JS applyFont() */
+  --reader-font-size: 18px;
+}
+
+/* ===== Base ===== */
+*{ box-sizing: border-box; }
+html,body{ height:100%; }
+body.rider-bg{
+  margin:0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  line-height:1.8; font-size:18px;
+  color: var(--ty-text);
+  background: linear-gradient(180deg, var(--ty-bg), #fff);
+}
+
+/* ===== HERO (Header) ===== */
+.rider-hero{
+  position: relative;
+  padding: 24px 16px 0;
+  color:#fff;
+  background: linear-gradient(180deg, var(--ty-green), var(--ty-green-dark));
+  border-bottom: 4px solid var(--ty-silver-dark);
+  box-shadow: var(--shadow);
+}
+.rider-hero__inner{
+  max-width: var(--maxw);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+/* Emblem (SVG) */
+.rider-emblem{
+  width:92px; height:92px;
+  border-radius:16px;
+  background: radial-gradient(70% 70% at 50% 50%, #f7fffb 0%, #e3f7ea 70%);
+  border:2px solid #d2ece0;
+  display:grid; place-items:center;
+  box-shadow: inset 0 0 18px rgba(255,255,255,.8), 0 8px 18px rgba(0,0,0,.08);
+}
+.rider-emblem__svg{ width:70px; height:70px; }
+.eye{ fill:#1fd875; filter: drop-shadow(0 0 6px rgba(31,216,117,.6)); }
+.horn{ stroke:#ff9d4d; stroke-width:6; fill:none; filter: drop-shadow(0 0 4px rgba(255,157,77,.6)); }
+.visor{ fill:#9fb6ad; opacity:.9; }
+
+/* Titles */
+.hero-titles{ padding: 6px 0; }
+.rider-title{
+  margin:0; font-size:28px; letter-spacing:.3px; color:#fff;
+  text-shadow: 0 0 10px var(--ty-green-glow);
+}
+.rider-subtitle{ margin:6px 0 0; color:#eafff1; font-size:15px; }
+
+/* ===== BELT (Nav) ===== */
+.rider-belt{
+  margin-top: 14px;
+  background: linear-gradient(90deg, var(--ty-silver), var(--ty-silver-dark));
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,.1);
+  padding-bottom: 12px;
+  border-top: 1px solid rgba(255,255,255,.6);
+}
+.rider-belt__core{
+  width: 86px; height: 12px; border-radius: 0 0 8px 8px;
+  margin: 0 auto; transform: translateY(-6px);
+  background: linear-gradient(180deg, #ffffff, var(--ty-silver-dark));
+  box-shadow: 0 6px 10px rgba(0,0,0,.12);
+}
+.rider-belt__slots{
+  display:flex; gap:8px; justify-content:center; margin: 2px 0 10px;
+}
+.slot{
+  width: 40px; height: 8px; border-radius: 999px;
+  background:#c7d3d9; box-shadow: inset 0 1px 0 rgba(255,255,255,.65);
+}
+.slot--red{ background: linear-gradient(180deg, #ffd2bb, #ff9d4d); }
+.slot--green{ background: linear-gradient(180deg, #d8ffe8, #27ae60); }
+.slot--silver{ background: linear-gradient(180deg, #f4f8f9, #b2bec3); }
+
+.belt-actions{
+  max-width: var(--maxw); margin:0 auto;
+  display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+  padding: 0 12px;
+}
+
+/* Buttons */
+.btn{
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  background:#fff; color: var(--ty-green-dark);
+  border:2px solid var(--ty-green-dark);
+  padding:10px 16px; border-radius:10px;
+  cursor:pointer; font-size:15px;
+  transition: all .2s ease;
+  box-shadow: var(--shadow);
+}
+.btn:hover{
+  background: var(--ty-green); color:#fff;
+  box-shadow: 0 0 10px var(--ty-green-glow), var(--shadow);
+}
+.btn:active{ transform: translateY(1px); }
+
+.btn--belt{ background:#fff; }
+.btn--home{
+  background: var(--ty-green-dark);
+  color:#fff;
+  border-color: var(--ty-green-dark);
+}
+.btn--home:hover{ background: var(--ty-green); }
+
+/* ===== MAIN ===== */
+.rider-container{
+  max-width: var(--maxw);
+  margin: 20px auto 26px; padding: 0 16px;
+}
+.rider-reader{
+  background:#fff; color: var(--ty-text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border:1px solid #edf4ee;
+  padding: 20px;
+}
+.reader-header{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  border-bottom:1px solid #e9f3ec;
+  padding-bottom:10px; margin-bottom:14px;
+}
+.reader-title{
+  margin:0; font-weight:700; color: var(--ty-green-dark);
+}
+.reader-meta{ display:flex; gap:8px; }
+.meta-chip{
+  padding: 4px 8px; border-radius:999px; font-size:12px;
+  border:1px solid #d6e9de; color: var(--ty-muted);
+  background: #f3fbf6;
+}
+.meta-chip--green{ color:#1d8f53; border-color:#b9ecd0; background:#e6f9ee; }
+.meta-chip--red{ color:#b66a28; border-color:#ffd9bf; background:#fff3ea; }
+
+.reader-content{
+  white-space: pre-line; text-align: justify;
+  color: var(--ty-text); line-height:1.9;
+  /* MỚI: dùng biến để JS điều chỉnh */
+  font-size: var(--reader-font-size);
+  margin-bottom: 16px;
+}
+
+/* Progress */
+.read-progress{
+  height:6px; width:100%; border-radius:999px; overflow:hidden;
+  background: #e4edef; margin: 12px 0;
+}
+.read-progress__bar{
+  height:100%; width:0%;
+  background: linear-gradient(90deg, var(--ty-green), var(--ty-green-dark));
+  transition: width .2s ease;
+}
+
+/* Tools */
+.reader-tools{
+  display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
+}
+
+/* ===== NEW: RPG Banner cho tên truyện ===== */
+.rpg-banner{
+  position: relative;
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(180deg, #3ed07f, #27ae60);
+  border: 2px solid #e9c85c; /* viền vàng */
+  box-shadow:
+    0 2px 0 #1c8a4a inset,
+    0 6px 18px rgba(0,0,0,.18);
+  text-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.rpg-banner::before,
+.rpg-banner::after{
+  content:"";
+  position:absolute; top: 50%;
+  width: 18px; height: 22px;
+  transform: translateY(-50%) skewX(-12deg);
+  background: linear-gradient(180deg, #f3d66b, #d9b541); /* đuôi cờ vàng */
+  box-shadow: 0 1px 0 rgba(0,0,0,.12) inset;
+  clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
+}
+.rpg-banner::before{ left:-14px; }
+.rpg-banner::after{
+  right:-14px;
+  transform: translateY(-50%) scaleX(-1) skewX(12deg);
+}
+
+/* ===== NEW: Điều hướng cuối chương ===== */
+.reader-endnav{
+  display:flex;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin: 12px 0 4px;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--ty-silver), var(--ty-silver-dark));
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,.08), var(--shadow);
+  position: relative;
+}
+.reader-endnav::before{
+  content:"";
+  width: 44px; height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, var(--ty-silver-dark));
+  position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
+  box-shadow: 0 6px 10px rgba(0,0,0,.08);
+}
+.reader-endnav .btn{
+  background:#fff;
+  color: var(--ty-green-dark);
+  border:2px solid var(--ty-green-dark);
+}
+.reader-endnav .btn:hover{
+  background: var(--ty-green);
+  color:#fff;
+  box-shadow: 0 0 10px var(--ty-green-glow), var(--shadow);
+}
+
+/* ===== FOOTER ===== */
+.rider-footer{
+  text-align:center; color: var(--ty-muted);
+  font-size:13px; padding: 10px 16px 24px;
+}
+.rider-tag{
+  letter-spacing:.12em; text-transform:uppercase; opacity:.75;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 900px){
+  .rider-hero__inner{ grid-template-columns: 72px 1fr; }
+  .rider-emblem{ width:72px; height:72px; }
+  .rider-title{ font-size:24px; }
+}
+@media (max-width: 640px){
+  .rider-hero__inner{ grid-template-columns: 1fr; }
+  .rider-emblem{ display:none; }
+  .reader-content{ font-size: var(--reader-font-size); }
+  .rpg-banner{
+    padding: 8px 14px;
+    font-size: 22px;
+  }
+  .rpg-banner::before,
+  .rpg-banner::after{
+    width: 14px; height: 18px;
+    left: -10px; right: -10px;
+  }
+}
+
+/* ===== KamenRider Mode (toggle bằng data-theme="kamenrider") ===== */
+html[data-theme="kamenrider"] .rider-bg,
+body.rider-bg.dark{
+  background: linear-gradient(180deg, #0f1511, #0b140e);
+  color:#e6f9ee;
+}
+html[data-theme="kamenrider"] .rider-hero,
+body.rider-bg.dark .rider-hero{
+  background: linear-gradient(180deg, #1fb565, #168e4f);
+  border-bottom-color:#98b6a0;
+}
+html[data-theme="kamenrider"] .rider-belt,
+body.rider-bg.dark .rider-belt,
+html[data-theme="kamenrider"] .reader-endnav,
+body.rider-bg.dark .reader-endnav{
+  background: linear-gradient(90deg, #c7d2d6, #aeb9bf);
+}
+html[data-theme="kamenrider"] .rider-reader,
+body.rider-bg.dark .rider-reader{
+  background:#1d2a22; color:#e6f9ee; border-color:#23342b;
+}
+html[data-theme="kamenrider"] .btn,
+body.rider-bg.dark .btn{
+  background:#e6f9ee; color:#15452c; border-color:#1e7f4a;
+}
+html[data-theme="kamenrider"] .btn:hover,
+body.rider-bg.dark .btn:hover{
+  background:#1fb565; color:#fff;
+}
+
+
+/* ===== Modal ===== */
+.chapter-modal{
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.25);
+  display: grid; place-items: center;
+  z-index: 50;
+}
+.chapter-modal__dialog{
+  width: min(720px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  border: 1px solid #edf4ee;
+  color: var(--ty-text);
+}
+.chapter-modal__header{
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e9f3ec;
+}
+.chapter-modal__list{
+  list-style: none; margin: 0; padding: 8px 12px 16px;
+  max-height: 60vh; overflow: auto;
+}
+.chapter-link-item{ margin: 6px 0; }
+.chapter-link-btn{
+  width: 100%; text-align: left;
+  display: flex; gap: 10px; align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border: 2px solid var(--ty-green-dark);
+  color: var(--ty-green-dark);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.chapter-link-btn:hover{
+  background: var(--ty-green);
+  color: #fff;
+  box-shadow: 0 0 10px var(--ty-green-glow);
+}
+.chapter-link-index{ width: 32px; opacity: .7; }
+.chapter-link-title{ flex: 1; }
+.chapter-modal[hidden]{ display:none !important; }
+

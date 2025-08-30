@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TuanManh Blog</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<!-- <script src="dang-truyen.js"></script> -->
+
+<body>
+  <!-- Thanh menu -->
+  <header class="top-nav">
+    <div class="logo">TuanManh</div>
+    <nav>
+      <a href="#">Home</a>
+      <a href="#">Truyện Chữ</a>
+
+      <a href="./dang-truyen/dang-truyen.html">Đăng Truyện</a>
+
+      <a href="#">Update</a>
+      <a href="#">Bài viết đặc biệt</a>
+    </nav>
+    <div class="search">🔍</div>
+  </header>
+
+  <!-- Banner slider -->
+  <section class="banner">
+    <div class="slide active">
+      <img src="images/banner2.jpg" alt="Banner 1">
+    </div>
+    <div class="slide">
+      <img src="images/banner1.jpg" alt="Banner 2">
+    </div>
+    <div class="slide">
+      <img src="images/banner1.jpg" alt="Banner 3">
+    </div>
+  </section>
+
+
+
+<!-- Nội dung chính -->
+<section class="layout">
+  <!-- Sidebar trái -->
+<aside class="sidebar">
+  <h3>Truyện đã đăng</h3>
+  <ul>
+    <li><a href="link-truyen-1.html">Truyện 1</a></li>
+    <li><a href="link-truyen-2.html">Truyện 2</a></li>
+    <li><a href="link-truyen-3.html">Truyện 3</a></li>
+    <li><a href="link-truyen-4.html">Truyện 4</a></li>
+  </ul>
+</aside>
+
+
+  <!-- Nội dung bên phải -->
+  <div class="main-article">
+    <div class="content-layout">
+      <!-- Ảnh chính bên trái -->
+      <div class="big-image">
+        <img src="images/main_img.jpg" alt="Hình ảnh chính">
+
+      </div>
+      <!-- Ảnh nhỏ bên phải (2 ảnh đứng dọc) -->
+      <div class="small-images">
+        <div class="small-card">
+          <img src="images/phu1.jpg" alt="Ảnh nhỏ 1">
+        </div>
+        <div class="small-card">
+          <img src="images/phu1.jpg" alt="Ảnh nhỏ 2">
+        </div>
+        <div class="small-card">
+          <img src="images/Logo_decade.jpg" alt="Ảnh nhỏ 2">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Lịch sự kiện + SNS -->
+<section class="layout">
+  <!-- Sidebar trái (reuse) -->
+  <aside class="sidebar">
+    <h3>SNS</h3>
+    <ul>
+      <li><a href="#">Twitter</a></li>
+      <li><a href="#">Instagram</a></li>
+      <li><a href="#">Facebook</a></li>
+    </ul>
+  </aside>
+
+  <!-- Nội dung bên phải -->
+<div class="main-article">
+  <h2>Lịch Tuần Này</h2>
+  <ul class="events" id="schedule-list">
+    <!-- Lịch sẽ tự hiển thị ở đây -->
+  </ul>
+  <button id="show-form-btn">+ Thêm lịch</button>
+
+  <!-- Form nhập -->
+  <form id="schedule-form" style="display:none; flex-direction: column; gap: 5px; margin-top: 10px;">
+    <input type="date" id="date" required>
+    <input type="time" id="time" required>
+    <input type="text" id="event" placeholder="Nhập sự kiện" required>
+    <button type="submit">Lưu</button>
+  </form>
+</div>
+</section>
+
+
+
+
+<!-- Phần Dự án - Sản phẩm - Dịch vụ -->
+<section class="cards">
+  <div class="card duan">
+    <img src="images/rider2.jpg" alt="Dự án">
+    <h3>Dự án</h3>
+    <p>Các dự án Kamen Rider đang triển khai.</p>
+  </div>
+
+  <div class="card sanpham">
+    <img src="images/rider1.jpg" alt="Sản phẩm">
+    <h3>Sản phẩm</h3>
+    <p>Các sản phẩm liên quan đến Kamen Rider có tại đây!</p>
+  </div>
+
+  <div class="card dichvu">
+    <img src="images/rider2.jpg" alt="Dịch vụ">
+    <h3>Dịch vụ</h3>
+    <p>Xem Kamen Rider trên nhiều dịch vụ khác nhau.</p>
+  </div>
+</section>
+
+
+
+<div class="container">
+  <!-- Bên trái -->
+  <div class="main-content">
+    <div class="banner">
+      <img src="images/banner.jpg" alt="Banner lớn">
+    </div>
+
+    <div class="content-grid">
+      <div class="item"><img src="images/rider1.jpg" alt=""></div>
+      <div class="item"><img src="images/rider2.jpg" alt=""></div>
+      <div class="item"><img src="images/rider1.jpg" alt=""></div>
+      <div class="item"><img src="images/rider2.jpg" alt=""></div>
+      <div class="item"><img src="images/rider2.jpg" alt=""></div>
+      <div class="item"><img src="images/rider1.jpg" alt=""></div>
+      <div class="item"><img src="images/rider2.jpg" alt=""></div>
+      <div class="item"><img src="images/rider1.jpg" alt=""></div>
+    </div>
+  </div>
+
+  <!-- Bên phải -->
+  <div class="sidebar">
+    <div class="calendar">
+      <h3>Lịch sự kiện</h3>
+      <ul>
+        <li>30/08: Sự kiện A</li>
+        <li>15/09: Sự kiện B</li>
+        <li>23/09: Sự kiện C</li>
+      </ul>
+    </div>
+
+    <div class="sns">
+      <h3>公式SNS</h3>
+      <ul>
+        <li><a href="#">Twitter</a></li>
+        <li><a href="#">YouTube</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 - TuanManh Blog</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
