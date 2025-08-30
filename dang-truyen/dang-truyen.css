@@ -1,0 +1,265 @@
+/* ===== Layout tổng ===== */
+:root {
+  --primary: #ff0000;
+  --primary-weak: #ffe0e0;
+  --text: #222;
+  --muted: #555;
+  --line: #eee;
+  --shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: var(--text);
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #fff;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+  width: 300px;
+  background: linear-gradient(180deg, var(--primary-weak), #fff);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  height: fit-content;
+}
+
+.sidebar h3 {
+  color: var(--primary);
+  margin: 0 0 10px 0;
+}
+
+.story-section h4 {
+  color: var(--primary);
+  margin: 0 0 6px 0;
+}
+
+/* Danh sách truyện */
+#story-list {
+  list-style: none;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-left: 0;
+  margin: 0 0 10px 0;
+}
+
+#story-list li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+#story-list li:hover {
+  background: var(--primary-weak);
+  border-radius: 6px;
+  padding-left: 6px;
+}
+
+/* Nút chọn truyện + khu vực action */
+.story-select {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text);
+  text-align: left;
+  padding: 0;
+  font: inherit;
+}
+
+.story-item.active .story-select {
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.story-actions button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Nút xóa truyện cũ (nếu bạn còn dùng class này) */
+.delete-story-btn {
+  margin-left: 10px;
+  padding: 2px 6px;
+  font-size: 12px;
+  background: #ff5555;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.delete-story-btn:hover { background: #cc0000; }
+
+/* ===== Form chung (thêm truyện + chương) ===== */
+.form-vertical,
+#post-story-form,
+#chapter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#post-story-form input,
+#post-story-form textarea,
+#chapter-form input,
+#chapter-form textarea {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font: inherit;
+  font-size: 14px;
+}
+
+#post-story-form button,
+#chapter-form button {
+  padding: 8px 12px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#post-story-form button:hover,
+#chapter-form button:hover {
+  background: #cc0000;
+}
+
+.btn-secondary {
+  background: #aaa !important;
+  color: #fff !important;
+}
+
+/* ===== Main content ===== */
+.main-article {
+  flex: 1;
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  min-width: 0;
+}
+
+/* ===== Khu vực chi tiết truyện + danh sách chương ===== */
+#chapter-section {
+  margin-top: 10px;
+}
+
+#chapter-section h3 {
+  color: var(--text);
+  margin: 0;
+}
+
+#selected-story-intro {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 8px 0 12px 0;
+}
+
+/* Header truyện + nút */
+.story-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.story-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.toggle-btn {
+  cursor: pointer;
+  font-size: 16px;
+  color: var(--primary);
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  transition: background 0.2s, transform 0.05s ease;
+}
+.toggle-btn:hover { background: var(--primary-weak); }
+.toggle-btn:active { transform: scale(0.98); }
+
+.story-date {
+  font-size: 12px;
+  color: #888;
+  margin-left: 5px;
+}
+
+/* Danh sách chương */
+#chapter-list {
+  list-style: none;
+  padding-left: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  margin: 0 0 10px 0;
+}
+
+.chapter-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #fff;
+}
+
+.chapter-left { max-width: calc(100% - 160px); }
+.chapter-title { font-weight: 600; margin-bottom: 4px; }
+.chapter-snippet { color: #555; margin-bottom: 4px; }
+.chapter-meta { color: #888; font-size: 12px; }
+
+.chapter-actions button {
+  margin-left: 6px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.chapter-actions button:hover { background: var(--primary-weak); }
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px) {
+  body {
+    gap: 12px;
+    padding: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    margin: 0;
+  }
+  .main-article {
+    width: 100%;
+  }
+  .chapter-left { max-width: 100%; }
+}

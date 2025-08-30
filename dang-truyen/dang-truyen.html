@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng Truyện - TuanManh Blog</title>
+  <link rel="stylesheet" href="dang-truyen.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <h3>Truyện</h3>
+
+  <!-- Danh sách truyện -->
+  <div class="story-section">
+    <h4>Đã đăng</h4>
+    <ul id="story-list"></ul>
+  </div>
+
+  <!-- Thêm truyện mới -->
+  <div class="story-section">
+    <h4>Thêm truyện mới</h4>
+    <form id="post-story-form" class="form-vertical">
+      <input type="text" id="story-title" placeholder="Tên truyện" required>
+      <textarea id="story-intro" placeholder="Giới thiệu truyện" rows="3" required></textarea>
+      <button type="submit">Thêm truyện</button>
+    </form>
+  </div>
+</aside>
+
+<main class="main-article">
+  <section id="chapter-section" aria-label="Quản lý chương" hidden>
+    <header class="story-header">
+      <h3 id="selected-story-name">Tên truyện</h3>
+      <div class="story-header-actions">
+        <button id="toggle-chapter-list" class="toggle-btn" aria-label="Ẩn/hiện danh sách chương">≡</button>
+        <button id="add-chapter-btn" class="toggle-btn" aria-label="Thêm chương">+</button>
+      </div>
+    </header>
+
+    <p id="selected-story-intro"></p>
+
+    <!-- Danh sách chương -->
+    <ul id="chapter-list"></ul>
+
+    <!-- Form thêm/sửa chương -->
+    <form id="chapter-form" class="form-vertical" hidden>
+      <input type="hidden" id="edit-index" value="">
+      <input type="text" id="chapter-title" placeholder="Tên chương" required>
+      <textarea id="chapter-content" placeholder="Nội dung chương" rows="4" required></textarea>
+      <div class="form-actions">
+        <button type="submit">Lưu chương</button>
+        <button type="button" id="cancel-edit" class="btn-secondary">Hủy</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script src="dang-truyen.js"></script>
+</body>
+</html>
