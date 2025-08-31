@@ -178,13 +178,11 @@ document.addEventListener("DOMContentLoaded", () => {
     .catch(err => console.error("[login] redirect error:", err?.code, err?.message));
 
   // Cập nhật UI theo trạng thái đăng nhập
-  onAuthStateChanged(auth, async (user) => {
-    console.log("[auth state]", user ? "signed in" : "signed out");
-    console.log('[user uid]', user?.uid);
-    console.log('[stories from cloud]', (snap.exists() && snap.data().stories?.length) || 0);
+  onAuthStateChanged(auth, async (user) => { 
+  console.log("[auth state]", user ? "signed in" : "signed out");
+  console.log("[user uid]", user?.uid || "(none)");
 
-
-    if (user) {
+  if (user) {
     // cập nhật nút/label
     const name = user.displayName || user.email || "Đã đăng nhập";
     const loginBtn   = document.getElementById("btn-login");
@@ -192,10 +190,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title = "Mở tài khoản / đăng xuất"; }
     if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
 
-    console.log("[user uid]", user.uid);
-
     const ref = userDocRef(user.uid);
-    let snap;
+    let snap = null;
     try {
       snap = await getDoc(ref);
     } catch (e) {
@@ -206,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (snap && snap.exists() && Array.isArray(snap.data().stories)) {
       // có dữ liệu cloud -> ghi local và phát sự kiện cập nhật
-      const cloudStories = snap.data().stories;
+      const cloudStories = snap.data().stories || [];
       console.log("[stories from cloud]", cloudStories.length);
       saveLocal(cloudStories);
       renderSidebarStories();
@@ -241,6 +237,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSidebarStories();
   }
 });
+
 });
 
 /* Render sidebar lần đầu (nếu có) */
