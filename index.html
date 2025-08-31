@@ -5,8 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TuanManh Blog</title>
   <link rel="stylesheet" href="style.css">
+  
 </head>
 <!-- <script src="dang-truyen.js"></script> -->
+ <script type="module" src="./js/firebase.js"></script>
 
 <body>
   <!-- Thanh menu -->
@@ -21,7 +23,20 @@
       <a href="#">Update</a>
       <a href="#">Bài viết đặc biệt</a>
     </nav>
-    <div class="search">🔍</div>
+    <!-- Nút đăng nhập/đăng xuất -->
+    <div class="login-menu">
+      <!-- Nút đăng nhập mặc định -->
+      <div class="login-btn" id="btn-login">🔑 Đăng nhập</div>
+
+      <!-- Panel cho user sau khi đăng nhập -->
+      <div class="login-menu__panel" id="login-panel" style="display:none;">
+        <div id="user-info">👤 User</div>
+        <a class="login-menu__item" href="./dang-truyen/dang-truyen.html">Đăng truyện</a>
+        <button class="login-menu__item" id="btn-logout" style="width:100%; text-align:left;">Đăng xuất</button>
+      </div>
+    </div>
+
+
   </header>
 
   <!-- Banner slider -->
@@ -184,3 +199,6 @@
   <script src="script.js"></script>
 </body>
 </html>
+
+
+

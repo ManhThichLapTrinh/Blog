@@ -14,11 +14,25 @@ const chapterContentInput = document.getElementById("chapter-content");
 const cancelEditBtn = document.getElementById("cancel-edit");
 
 // ===== State & Storage =====
-let savedStories = JSON.parse(localStorage.getItem("storyData")) || [];
+let savedStories = (() => {
+  try { return JSON.parse(localStorage.getItem("storyData")) || []; }
+  catch { return []; }
+})();
 let selectedStoryIndex = null;
 
-function save() {
-  localStorage.setItem("storyData", JSON.stringify(savedStories));
+// Ghi local + (nếu có) ghi cloud qua js/firebase.js
+async function save() {
+  try {
+    if (typeof window.saveStories === "function") {
+      await window.saveStories(savedStories); // ghi Firestore + local
+    } else {
+      localStorage.setItem("storyData", JSON.stringify(savedStories)); // chỉ local
+    }
+  } catch (e) {
+    console.error("Lưu dữ liệu lỗi:", e);
+    // fallback local để không mất dữ liệu
+    localStorage.setItem("storyData", JSON.stringify(savedStories));
+  }
 }
 
 function isoNow() {
@@ -45,7 +59,7 @@ function renderStories() {
 
     li.innerHTML = `
       <button class="story-select">${story.title}</button>
-      <span class="story-date">(${new Date(story.createdAt).toLocaleDateString()})</span>
+      <span class="story-date">(${new Date(story.createdAt || Date.now()).toLocaleDateString()})</span>
       <div class="story-actions">
         <button class="delete-story-btn" title="Xóa truyện">🗑️</button>
       </div>
@@ -57,12 +71,12 @@ function renderStories() {
     });
 
     // Xóa truyện
-    li.querySelector(".delete-story-btn").addEventListener("click", (e) => {
+    li.querySelector(".delete-story-btn").addEventListener("click", async (e) => {
       e.stopPropagation();
       const name = story.title || "truyện";
       if (confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) {
         savedStories.splice(index, 1);
-        save();
+        await save();
         // nếu đang xem truyện bị xóa -> ẩn phần chapter
         if (selectedStoryIndex === index) {
           selectedStoryIndex = null;
@@ -77,12 +91,8 @@ function renderStories() {
 
   // đánh dấu active
   if (selectedStoryIndex != null && savedStories[selectedStoryIndex]) {
-    document
-      .querySelectorAll("#story-list .story-item")
-      .forEach((el) => el.classList.remove("active"));
-    const active = document.querySelector(
-      `#story-list .story-item[data-index="${selectedStoryIndex}"]`
-    );
+    document.querySelectorAll("#story-list .story-item").forEach((el) => el.classList.remove("active"));
+    const active = document.querySelector(`#story-list .story-item[data-index="${selectedStoryIndex}"]`);
     if (active) active.classList.add("active");
   }
 }
@@ -101,25 +111,22 @@ function selectStory(index) {
   renderChapters();
 
   // đánh dấu active
-  document
-    .querySelectorAll("#story-list .story-item")
-    .forEach((el) => el.classList.remove("active"));
-  const active = document.querySelector(
-    `#story-list .story-item[data-index="${selectedStoryIndex}"]`
-  );
+  document.querySelectorAll("#story-list .story-item").forEach((el) => el.classList.remove("active"));
+  const active = document.querySelector(`#story-list .story-item[data-index="${selectedStoryIndex}"]`);
   if (active) active.classList.add("active");
 }
 
 // ===== Thêm truyện mới =====
-postStoryForm.addEventListener("submit", function (e) {
+postStoryForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const title = document.getElementById("story-title").value.trim();
   const intro = document.getElementById("story-intro").value.trim();
   const createdAt = isoNow();
   if (!title || !intro) return;
 
+  // Thêm lên đầu danh sách
   savedStories.unshift({ title, intro, createdAt, chapters: [] });
-  save();
+  await save();
   renderStories();
   postStoryForm.reset();
 
@@ -147,11 +154,11 @@ function renderChapters() {
     li.className = "chapter-item";
     li.dataset.index = i;
 
-    // Link đọc chương + nút sửa/xóa
+    // LƯU Ý: Trang này nằm trong /dang-truyen/ → link đọc dùng ../doc-truyen/doc-truyen.html
     li.innerHTML = `
       <div class="chapter-left">
         <div class="chapter-title">
-          <a href="./doc-truyen.html?story=${selectedStoryIndex}&chapter=${i}">${chap.title}</a>
+          <a href="../doc-truyen/doc-truyen.html?story=${selectedStoryIndex}&chapter=${i}" target="_blank">${chap.title}</a>
         </div>
         <div class="chapter-snippet">${(chap.content || "").slice(0, 120)}${(chap.content || "").length > 120 ? "…" : ""}</div>
       </div>
@@ -167,10 +174,10 @@ function renderChapters() {
     });
 
     // Xóa
-    li.querySelector(".chapter-delete").addEventListener("click", () => {
+    li.querySelector(".chapter-delete").addEventListener("click", async () => {
       if (confirm(`Xóa chương "${chap.title}"?`)) {
         story.chapters.splice(i, 1);
-        save();
+        await save();
         renderChapters();
       }
     });
@@ -181,8 +188,7 @@ function renderChapters() {
 
 // ===== Toggle danh sách chương =====
 toggleChapterList.addEventListener("click", () => {
-  chapterList.style.display =
-    chapterList.style.display === "none" ? "block" : "none";
+  chapterList.style.display = chapterList.style.display === "none" ? "block" : "none";
 });
 
 // ===== Mở form thêm/sửa chương =====
@@ -199,7 +205,7 @@ function openChapterForm(editIndex = null) {
     chapterContentInput.value = "";
   } else {
     // Sửa
-    const ch = story.chapters[editIndex];
+    const ch = story.chapters?.[editIndex];
     if (!ch) return;
     editIndexInput.value = String(editIndex);
     chapterTitleInput.value = ch.title || "";
@@ -219,7 +225,7 @@ cancelEditBtn.addEventListener("click", () => {
 });
 
 // ===== Lưu chương (thêm mới hoặc cập nhật) =====
-chapterForm.addEventListener("submit", function (e) {
+chapterForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const story = savedStories[selectedStoryIndex];
   if (!story) return;
@@ -232,15 +238,18 @@ chapterForm.addEventListener("submit", function (e) {
   const isEditing = editIdxRaw !== "";
   if (isEditing) {
     const idx = Number(editIdxRaw);
-    if (story.chapters[idx]) {
+    if (story.chapters && story.chapters[idx]) {
       story.chapters[idx].title = title;
       story.chapters[idx].content = content;
+      story.chapters[idx].updatedAt = isoNow();
     }
   } else {
-    story.chapters.push({ title, content });
+    if (!Array.isArray(story.chapters)) story.chapters = [];
+    story.chapters.push({ title, content, createdAt: isoNow(), updatedAt: isoNow() });
   }
+  story.updatedAt = isoNow();
 
-  save();
+  await save();
   renderChapters();
 
   // reset + đóng form
@@ -251,6 +260,12 @@ chapterForm.addEventListener("submit", function (e) {
 });
 
 // ===== Khởi tạo =====
+// Nếu đã có window.getStories từ firebase.js (đã sync cloud) → ưu tiên dùng
+try {
+  if (typeof window.getStories === "function") {
+    const list = window.getStories();
+    if (Array.isArray(list)) savedStories = list;
+  }
+} catch {}
 renderStories();
-// Nếu đã có truyện, tự chọn truyện đầu
 if (savedStories[0]) selectStory(0);

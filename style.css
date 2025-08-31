@@ -379,3 +379,54 @@ footer {
   margin-top: 20px;
 }
 
+
+
+
+
+
+
+/* Nút login trong top-nav */
+.login-btn {
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  background: #111;
+  color: #fff;
+  border: 1px solid rgba(0,0,0,0.12);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: 0.2s;
+}
+
+.login-btn:hover {
+  background: #000;
+}
+
+/* Menu panel cho user */
+.login-menu {
+  position: relative;
+}
+.login-menu__panel {
+  position: absolute;
+  right: 0;
+  top: 120%;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid #eaeaea;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  padding: 8px;
+  z-index: 20;
+}
+.login-menu__item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #333;
+  text-decoration: none;
+  display: block;
+}
+.login-menu__item:hover {
+  background: #f6f6f6;
+}
