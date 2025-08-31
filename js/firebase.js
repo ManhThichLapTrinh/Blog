@@ -29,7 +29,7 @@ const provider = new GoogleAuthProvider();
 const STORAGE_KEY = "storyData";
 let unsubscribeCloud = null;
 
-/* ------------- Local helpers ------------- */
+/* ---------- Local helpers ---------- */
 function loadLocal() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { return []; }
@@ -38,7 +38,7 @@ function saveLocal(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
-/* ------------- Sidebar render (nếu có) ------------- */
+/* ---------- Sidebar render (nếu có) ---------- */
 function renderSidebarStories() {
   const sidebar = document.querySelector("aside.sidebar");
   if (!sidebar) return;
@@ -54,7 +54,7 @@ function renderSidebarStories() {
     : "<li>Chưa có truyện nào</li>";
 }
 
-/* ------------- Cloud helpers ------------- */
+/* ---------- Cloud helpers ---------- */
 const userDocRef = (uid) => doc(db, "users", uid);
 
 async function pushCloudIfLoggedIn(stories) {
@@ -96,7 +96,7 @@ window.deleteStory = async (index) => {
   return list;
 };
 
-/* ========== Auth UI ========== */
+/* ========== Auth UI (đợi DOM sẵn) ========== */
 document.addEventListener("DOMContentLoaded", () => {
   const loginBtn   = document.getElementById("btn-login");
   const loginPanel = document.getElementById("login-panel");
@@ -109,33 +109,52 @@ document.addEventListener("DOMContentLoaded", () => {
     loginPanel.style.display = (loginPanel.style.display==="none" || !loginPanel.style.display) ? "block" : "none";
   };
 
+  // Bấm nút đăng nhập / mở panel
   loginBtn?.addEventListener("click", () => {
     if (auth.currentUser) {
       togglePanel();
     } else {
+      console.log("[login] redirect to Google");
       signInWithRedirect(auth, provider);
     }
   });
-  logoutBtn?.addEventListener("click", async () => { await signOut(auth); closePanel(); });
 
+  // Đăng xuất
+  logoutBtn?.addEventListener("click", async () => {
+    await signOut(auth);
+    closePanel();
+  });
+
+  // Click ngoài để đóng panel
   document.addEventListener("click", (e) => {
     if (!loginPanel || !loginBtn) return;
     const inside = loginPanel.contains(e.target) || loginBtn.contains(e.target);
     if (!inside) closePanel();
   });
 
-  getRedirectResult(auth).catch(err=>console.error("Login error:",err));
+  // Nhận kết quả sau redirect (thêm log để chắc chắn)
+  getRedirectResult(auth)
+    .then(res => {
+      if (res?.user) {
+        console.log("[login] redirect OK:", res.user.email || res.user.uid);
+      }
+    })
+    .catch(err => console.error("[login] redirect error:", err));
 
+  // Cập nhật UI theo trạng thái đăng nhập
   onAuthStateChanged(auth, async (user) => {
     console.log("[auth state]", user ? "signed in" : "signed out");
+
     if (user) {
       const name = user.displayName || user.email || "Đã đăng nhập";
       if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title="Mở tài khoản / đăng xuất"; }
       if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
 
+      // Đồng bộ stories
       const ref = userDocRef(user.uid);
       const snap= await getDoc(ref);
       const local= loadLocal();
+
       if (snap.exists() && Array.isArray(snap.data().stories)) {
         saveLocal(snap.data().stories);
       } else if (local.length) {
@@ -149,12 +168,14 @@ document.addEventListener("DOMContentLoaded", () => {
           renderSidebarStories();
         }
       });
+
     } else {
       if (loginBtn)  { loginBtn.textContent="🔑 Đăng nhập"; loginBtn.title="Đăng nhập Google"; }
       if (userInfoEl) userInfoEl.textContent="👤 User";
       closePanel();
       if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud=null; }
     }
+
     renderSidebarStories();
   });
 });
