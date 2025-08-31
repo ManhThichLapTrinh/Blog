@@ -1,14 +1,11 @@
 // js/firebase.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import {
-  GoogleAuthProvider,
-  initializeAuth,            // dùng initializeAuth thay vì getAuth
-  browserLocalPersistence,  // set persistence ngay khi init
+  getAuth, GoogleAuthProvider,
+  setPersistence, browserLocalPersistence,
   onAuthStateChanged,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut
 } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, onSnapshot, serverTimestamp
@@ -27,12 +24,14 @@ const firebaseConfig = {
 
 /* ===== Init ===== */
 const app  = initializeApp(firebaseConfig);
-
-// KHỞI TẠO AUTH + PERSISTENCE NGAY TỪ ĐẦU
-const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence,
-});
+const auth = getAuth(app);              // dùng getAuth cho web tĩnh
 const db   = getFirestore(app);
+auth.languageCode = "vi";
+
+// Đảm bảo session được giữ lại sau redirect/popup
+setPersistence(auth, browserLocalPersistence).catch(err => {
+  console.warn("[auth] setPersistence failed:", err?.code, err?.message);
+});
 
 // Provider
 const provider = new GoogleAuthProvider();
@@ -159,9 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Nhận kết quả sau redirect (log chi tiết)
   getRedirectResult(auth)
     .then(res => {
-      if (res?.user) {
-        console.log("[login] redirect OK:", res.user.email || res.user.uid);
-      }
+      if (res?.user) console.log("[login] redirect OK:", res.user.email || res.user.uid);
     })
     .catch(err => console.error("[login] redirect error:", err?.code, err?.message));
 
