@@ -30,7 +30,6 @@ async function save() {
     }
   } catch (e) {
     console.error("Lưu dữ liệu lỗi:", e);
-    // fallback local để không mất dữ liệu
     localStorage.setItem("storyData", JSON.stringify(savedStories));
   }
 }
@@ -65,7 +64,7 @@ function renderStories() {
       </div>
     `;
 
-    // Chọn truyện để xem/sửa chương
+    // Chọn truyện
     li.querySelector(".story-select").addEventListener("click", () => {
       selectStory(index);
     });
@@ -77,7 +76,6 @@ function renderStories() {
       if (confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) {
         savedStories.splice(index, 1);
         await save();
-        // nếu đang xem truyện bị xóa -> ẩn phần chapter
         if (selectedStoryIndex === index) {
           selectedStoryIndex = null;
           chapterSection.hidden = true;
@@ -107,10 +105,9 @@ function selectStory(index) {
   selectedStoryName.textContent = s.title;
   selectedStoryIntro.textContent = s.intro;
   chapterSection.hidden = false;
-  chapterForm.hidden = true; // đóng form khi chuyển truyện
+  chapterForm.hidden = true;
   renderChapters();
 
-  // đánh dấu active
   document.querySelectorAll("#story-list .story-item").forEach((el) => el.classList.remove("active"));
   const active = document.querySelector(`#story-list .story-item[data-index="${selectedStoryIndex}"]`);
   if (active) active.classList.add("active");
@@ -124,13 +121,17 @@ postStoryForm.addEventListener("submit", async function (e) {
   const createdAt = isoNow();
   if (!title || !intro) return;
 
-  // Thêm lên đầu danh sách
-  savedStories.unshift({ title, intro, createdAt, chapters: [] });
-  await save();
+  // Ưu tiên dùng API cloud nếu có
+  if (typeof window.addStory === "function") {
+    await window.addStory({ title, intro, chapters: [] });
+    savedStories = window.getStories(); // lấy bản mới nhất
+  } else {
+    savedStories.unshift({ title, intro, createdAt, chapters: [] });
+    await save();
+  }
+
   renderStories();
   postStoryForm.reset();
-
-  // tự chọn truyện vừa thêm (ở đầu danh sách)
   selectStory(0);
 });
 
@@ -154,7 +155,6 @@ function renderChapters() {
     li.className = "chapter-item";
     li.dataset.index = i;
 
-    // LƯU Ý: Trang này nằm trong /dang-truyen/ → link đọc dùng ../doc-truyen/doc-truyen.html
     li.innerHTML = `
       <div class="chapter-left">
         <div class="chapter-title">
@@ -168,12 +168,10 @@ function renderChapters() {
       </div>
     `;
 
-    // Sửa
     li.querySelector(".chapter-edit").addEventListener("click", () => {
       openChapterForm(i);
     });
 
-    // Xóa
     li.querySelector(".chapter-delete").addEventListener("click", async () => {
       if (confirm(`Xóa chương "${chap.title}"?`)) {
         story.chapters.splice(i, 1);
@@ -199,12 +197,10 @@ function openChapterForm(editIndex = null) {
   if (!story) return;
 
   if (editIndex === null) {
-    // Thêm mới
     editIndexInput.value = "";
     chapterTitleInput.value = "";
     chapterContentInput.value = "";
   } else {
-    // Sửa
     const ch = story.chapters?.[editIndex];
     if (!ch) return;
     editIndexInput.value = String(editIndex);
@@ -224,7 +220,7 @@ cancelEditBtn.addEventListener("click", () => {
   chapterContentInput.value = "";
 });
 
-// ===== Lưu chương (thêm mới hoặc cập nhật) =====
+// ===== Lưu chương =====
 chapterForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const story = savedStories[selectedStoryIndex];
@@ -252,7 +248,6 @@ chapterForm.addEventListener("submit", async function (e) {
   await save();
   renderChapters();
 
-  // reset + đóng form
   chapterForm.hidden = true;
   editIndexInput.value = "";
   chapterTitleInput.value = "";
@@ -260,7 +255,6 @@ chapterForm.addEventListener("submit", async function (e) {
 });
 
 // ===== Khởi tạo =====
-// Nếu đã có window.getStories từ firebase.js (đã sync cloud) → ưu tiên dùng
 try {
   if (typeof window.getStories === "function") {
     const list = window.getStories();
@@ -269,3 +263,17 @@ try {
 } catch {}
 renderStories();
 if (savedStories[0]) selectStory(0);
+
+// optional: refresh lại để bắt kịp cloud khi vừa sync xong
+setTimeout(() => {
+  try {
+    if (typeof window.getStories === "function") {
+      const list = window.getStories();
+      if (Array.isArray(list)) {
+        savedStories = list;
+        renderStories();
+        if (savedStories[0]) selectStory(0);
+      }
+    }
+  } catch {}
+}, 800);
