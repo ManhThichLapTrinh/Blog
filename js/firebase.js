@@ -49,6 +49,11 @@ function saveLocal(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
 
+// 🔔 phát sự kiện để các trang khác (dang-truyen.js) tự refresh
+function notifyStoriesUpdated() {
+  try { window.dispatchEvent(new CustomEvent("stories-updated")); } catch {}
+}
+
 /* ===== Sidebar render (nếu có) ===== */
 function renderSidebarStories() {
   const sidebar = document.querySelector("aside.sidebar");
@@ -69,8 +74,11 @@ function renderSidebarStories() {
 const userDocRef = (uid) => doc(db, "users", uid);
 
 async function pushCloudIfLoggedIn(stories) {
+  // luôn cập nhật local + UI
   saveLocal(stories);
   renderSidebarStories();
+  notifyStoriesUpdated(); // 🔔 báo cho trang khác
+
   const user = auth.currentUser;
   if (user) {
     await setDoc(userDocRef(user.uid), { stories, updatedAt: serverTimestamp() });
@@ -79,7 +87,12 @@ async function pushCloudIfLoggedIn(stories) {
 
 /* ===== Public API (gắn lên window) ===== */
 window.getStories = () => loadLocal();
-window.saveStories = async (stories) => { await pushCloudIfLoggedIn(stories); return stories; };
+
+window.saveStories = async (stories) => {
+  await pushCloudIfLoggedIn(stories);
+  return stories;
+};
+
 window.addStory = async ({ title, intro = "", chapters = [] }) => {
   const list = loadLocal();
   list.push({
@@ -92,6 +105,7 @@ window.addStory = async ({ title, intro = "", chapters = [] }) => {
   await pushCloudIfLoggedIn(list);
   return list;
 };
+
 window.updateStory = async (index, patch) => {
   const list = loadLocal();
   if (!list[index]) return list;
@@ -99,6 +113,7 @@ window.updateStory = async (index, patch) => {
   await pushCloudIfLoggedIn(list);
   return list;
 };
+
 window.deleteStory = async (index) => {
   const list = loadLocal();
   if (index<0 || index>=list.length) return list;
@@ -178,8 +193,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (snap.exists() && Array.isArray(snap.data().stories)) {
         saveLocal(snap.data().stories);
+        notifyStoriesUpdated();  // 🔔 đã kéo dữ liệu từ cloud về
       } else if (local.length) {
         await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
+        // sau khi setDoc xong Firestore sẽ bắn onSnapshot, listener bên dưới sẽ notify
       }
 
       if (unsubscribeCloud) unsubscribeCloud();
@@ -187,6 +204,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (s.exists() && Array.isArray(s.data().stories)) {
           saveLocal(s.data().stories);
           renderSidebarStories();
+          notifyStoriesUpdated(); // 🔔 realtime từ cloud
         }
       });
 
@@ -196,6 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
       closePanel();
       if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud=null; }
       renderSidebarStories();
+      // signed out thì không phát sự kiện
     }
   });
 });

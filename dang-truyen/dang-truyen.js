@@ -69,19 +69,26 @@ function renderStories() {
       selectStory(index);
     });
 
-    // Xóa truyện
+    // Xóa truyện (cải thiện: tự chọn truyện kế tiếp nếu còn)
     li.querySelector(".delete-story-btn").addEventListener("click", async (e) => {
       e.stopPropagation();
       const name = story.title || "truyện";
-      if (confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) {
-        savedStories.splice(index, 1);
-        await save();
-        if (selectedStoryIndex === index) {
-          selectedStoryIndex = null;
-          chapterSection.hidden = true;
-        }
-        renderStories();
+      if (!confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) return;
+
+      const wasIndex = index;
+      savedStories.splice(index, 1);
+      await save();
+
+      if (savedStories.length) {
+        // nếu còn truyện → chọn truyện gần nhất vị trí cũ
+        selectedStoryIndex = Math.min(wasIndex, savedStories.length - 1);
+        selectStory(selectedStoryIndex);
+      } else {
+        // không còn truyện
+        selectedStoryIndex = null;
+        chapterSection.hidden = true;
       }
+      renderStories();
     });
 
     storyList.appendChild(li);
@@ -175,6 +182,7 @@ function renderChapters() {
     li.querySelector(".chapter-delete").addEventListener("click", async () => {
       if (confirm(`Xóa chương "${chap.title}"?`)) {
         story.chapters.splice(i, 1);
+        story.updatedAt = isoNow();
         await save();
         renderChapters();
       }
@@ -263,6 +271,31 @@ try {
 } catch {}
 renderStories();
 if (savedStories[0]) selectStory(0);
+
+// 🔔 Lắng nghe tín hiệu đồng bộ từ firebase.js (realtime + push)
+window.addEventListener("stories-updated", () => {
+  try {
+    let list;
+    if (typeof window.getStories === "function") {
+      list = window.getStories();
+    } else {
+      list = JSON.parse(localStorage.getItem("storyData") || "[]");
+    }
+    if (!Array.isArray(list)) list = [];
+    savedStories = list;
+
+    renderStories();
+
+    // nếu đang không chọn truyện nào hoặc index cũ không hợp lệ → chọn truyện đầu
+    if (savedStories.length && (selectedStoryIndex == null || !savedStories[selectedStoryIndex])) {
+      selectStory(0);
+    } else if (!savedStories.length) {
+      chapterSection.hidden = true;
+    }
+  } catch (e) {
+    console.warn("[stories-updated] refresh failed:", e);
+  }
+});
 
 // optional: refresh lại để bắt kịp cloud khi vừa sync xong
 setTimeout(() => {
