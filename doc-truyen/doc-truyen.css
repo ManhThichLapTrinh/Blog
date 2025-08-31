@@ -355,3 +355,77 @@ body.rider-bg.dark .btn:hover{
     width: 100vw; height: 92vh; border-radius: 0;  /* full-screen trên mobile */
   }
 }
+
+/* ===========================
+   MOBILE FULL-BLEED + GREEN TINT
+   =========================== */
+@media (max-width: 640px){
+  /* nền toàn trang xanh dịu hơn */
+  body.rider-bg{
+    background: linear-gradient(180deg, #eaf7ef, #f5fbf7);
+  }
+
+  /* container full-bleed: bỏ max-width, margin & padding ngang */
+  .rider-container{
+    max-width: none;
+    margin: 0;
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  /* khối reader sát viền, không bo góc, nền hơi xanh */
+  .rider-reader{
+    border-radius: 0;
+    box-shadow: none;                /* bỏ đổ bóng để sát viền trông phẳng */
+    border-left: 0;
+    border-right: 0;
+    background: linear-gradient(180deg, var(--ty-bg-strong), #ffffff);
+    /* padding hợp lý theo màn, có tính safe-area */
+    padding: 18px clamp(12px, 4vw, 20px);
+    padding-left: max(clamp(12px, 4vw, 20px), env(safe-area-inset-left));
+    padding-right: max(clamp(12px, 4vw, 20px), env(safe-area-inset-right));
+  }
+
+  /* header hero gọn lại, sát viền đẹp hơn */
+  .rider-hero{
+    border-radius: 0;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* belt (nav) giữ sticky và full-bleed */
+  .rider-belt{
+    margin-left: calc(-1 * max(16px, env(safe-area-inset-left)));
+    margin-right: calc(-1 * max(16px, env(safe-area-inset-right)));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    border-radius: 0;
+  }
+
+  /* tăng độ dễ đọc */
+  :root{ --reader-font-size: 19px; }
+  .reader-content{
+    background: transparent; /* giữ nền theo .rider-reader */
+    line-height: 1.95;
+  }
+
+  /* progress bar full chiều rộng */
+  .read-progress{
+    border-radius: 0;
+  }
+
+  /* điều hướng cuối chương full-bleed, không bo góc */
+  .reader-endnav{
+    border-radius: 0;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
+
+  /* modal đã có full-screen, bổ sung nền hơi xanh cho dialog nếu muốn */
+  .chapter-modal__dialog{
+    background: linear-gradient(180deg, #f4fbf7, #ffffff);
+    border-color: #e0efe6;
+  }
+}
