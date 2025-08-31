@@ -133,5 +133,89 @@
 */
 
 
+// =====================
+// MOBILE MENU TOGGLE (≤768px)
+// =====================
+(() => {
+  const toggleBtn = document.getElementById("menu-toggle");
+  const navMenu = document.getElementById("nav-menu");
+
+  if (!toggleBtn || !navMenu) return;
+
+  // Trạng thái
+  const OPEN_CLASS = "active";
+  const MOBILE_BREAKPOINT = 768;
+
+  // Cập nhật aria cho accessibility
+  const setAria = (isOpen) => {
+    toggleBtn.setAttribute("aria-expanded", String(isOpen));
+    navMenu.setAttribute("aria-hidden", String(!isOpen));
+  };
+
+  const openMenu = () => {
+    navMenu.classList.add(OPEN_CLASS);
+    setAria(true);
+    // Ngăn cuộn nền khi menu mở trên mobile
+    if (window.innerWidth <= MOBILE_BREAKPOINT) {
+      document.body.style.overflow = "hidden";
+    }
+  };
+
+  const closeMenu = () => {
+    navMenu.classList.remove(OPEN_CLASS);
+    setAria(false);
+    document.body.style.overflow = "";
+  };
+
+  const toggleMenu = () => {
+    const isOpen = navMenu.classList.contains(OPEN_CLASS);
+    isOpen ? closeMenu() : openMenu();
+  };
+
+  // Click nút hamburger
+  toggleBtn.addEventListener("click", toggleMenu);
+  
+  navMenu.querySelectorAll("a").forEach(a =>
+  a.addEventListener("click", () => {
+    if (window.innerWidth <= 768) closeMenu();
+  })
+);
+
+
+  // Đóng khi bấm ra ngoài
+  document.addEventListener("click", (e) => {
+    const isClickInside =
+      navMenu.contains(e.target) || toggleBtn.contains(e.target);
+    if (!isClickInside && navMenu.classList.contains(OPEN_CLASS)) {
+      closeMenu();
+    }
+  });
+
+  // Đóng bằng phím ESC
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && navMenu.classList.contains(OPEN_CLASS)) {
+      closeMenu();
+    }
+  });
+
+  // Khi đổi kích thước màn hình:
+  // - Vượt quá breakpoint thì đảm bảo menu hiện như desktop (xóa inline style)
+  // - Quay về mobile thì đóng menu mặc định
+  const handleResize = () => {
+    if (window.innerWidth > MOBILE_BREAKPOINT) {
+      // Desktop: hiển thị theo CSS desktop, xóa trạng thái mobile
+      closeMenu();
+    } else {
+      // Mobile: mặc định đóng
+      setAria(false);
+    }
+  };
+
+  window.addEventListener("resize", handleResize);
+
+  // Khởi tạo ARIA
+  setAria(false);
+})();
+
 
 

@@ -13,31 +13,32 @@
 <body>
   <!-- Thanh menu -->
   <header class="top-nav">
-    <div class="logo">TuanManh</div>
-    <nav>
-      <a href="#">Home</a>
-      <a href="#">Truyện Chữ</a>
+  <div class="logo">TuanManh</div>
 
-      <a href="./dang-truyen/dang-truyen.html">Đăng Truyện</a>
+  <!-- Menu chính -->
+  <nav id="nav-menu">
+    <a href="#">Home</a>
+    <a href="#">Truyện Chữ</a>
+    <a href="./dang-truyen/dang-truyen.html">Đăng Truyện</a>
+    <a href="#">Update</a>
+    <a href="#">Bài viết đặc biệt</a>
+  </nav>
 
-      <a href="#">Update</a>
-      <a href="#">Bài viết đặc biệt</a>
-    </nav>
-    <!-- Nút đăng nhập/đăng xuất -->
-    <div class="login-menu">
-      <!-- Nút đăng nhập mặc định -->
-      <div class="login-btn" id="btn-login">🔑 Đăng nhập</div>
-
-      <!-- Panel cho user sau khi đăng nhập -->
-      <div class="login-menu__panel" id="login-panel" style="display:none;">
-        <div id="user-info">👤 User</div>
-        <a class="login-menu__item" href="./dang-truyen/dang-truyen.html">Đăng truyện</a>
-        <button class="login-menu__item" id="btn-logout" style="width:100%; text-align:left;">Đăng xuất</button>
-      </div>
+  <!-- Khu login -->
+  <div class="login-menu">
+    <div class="login-btn" id="btn-login">🔑 Đăng nhập</div>
+    <div class="login-menu__panel" id="login-panel" style="display:none;">
+      <div id="user-info">👤 User</div>
+      <a class="login-menu__item" href="./dang-truyen/dang-truyen.html">Đăng truyện</a>
+      <button class="login-menu__item" id="btn-logout">Đăng xuất</button>
     </div>
+  </div>
+
+  <!-- Hamburger menu (đặt cuối cùng, bên phải login) -->
+  <div class="menu-toggle" id="menu-toggle">☰</div>
+</header>
 
 
-  </header>
 
   <!-- Banner slider -->
   <section class="banner">

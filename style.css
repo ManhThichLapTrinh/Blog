@@ -430,3 +430,125 @@ footer {
 .login-menu__item:hover {
   background: #f6f6f6;
 }
+
+/* ===================== */
+/* Responsive cho Mobile */
+/* ===================== */
+@media (max-width: 768px) {
+  /* Thanh menu: đổi thành dạng cột */
+  .top-nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .top-nav nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .top-nav nav a {
+    font-size: 14px;
+  }
+
+  /* Banner nhỏ hơn */
+  .banner {
+    height: 150px;
+  }
+
+  /* Sidebar + Main content xếp dọc */
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* Content layout: ảnh chính trên, ảnh nhỏ dưới */
+  .content-layout {
+    grid-template-columns: 1fr;
+  }
+  .small-images {
+    flex-direction: row;
+    gap: 10px;
+    overflow-x: auto; /* Cuộn ngang nếu nhiều ảnh */
+  }
+  .small-card img {
+    height: 100px;
+  }
+
+  /* Cards hiển thị dọc thay vì ngang */
+  .cards {
+    flex-direction: column;
+  }
+
+  /* Grid ảnh trong container: đổi thành 2 cột */
+  .content-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Sidebar cuối cùng hiển thị dưới main-content */
+  .container {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Nút hamburger */
+.menu-toggle {
+  display: none;
+  font-size: 26px;
+  cursor: pointer;
+  user-select: none;
+  margin-left: 15px; /* cách login 1 chút */
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  /* Ẩn menu mặc định */
+  .top-nav nav {
+    display: none;
+    flex-direction: column;
+    width: 100%;
+    background: #fff;
+    border-top: 1px solid #ccc;
+    margin-top: 10px;
+  }
+
+  .top-nav nav a {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+  }
+
+  .top-nav nav.active {
+    display: flex;
+  }
+
+  /* Hiện hamburger */
+  .menu-toggle {
+    display: block;
+  }
+
+  /* Giữ top-nav hàng ngang: logo | login | ☰ */
+  .top-nav {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Gom login + ☰ về phía phải */
+  .login-menu {
+    order: 1;
+  }
+  .menu-toggle {
+    order: 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .top-nav nav {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+  }
+  .top-nav nav.active {
+    max-height: 500px; /* đủ lớn để chứa toàn bộ menu */
+  }
+}
+

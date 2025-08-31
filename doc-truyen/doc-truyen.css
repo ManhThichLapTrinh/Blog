@@ -19,13 +19,14 @@
   --shadow: 0 6px 20px rgba(0,0,0,.12);
   --maxw: 880px;
 
-  /* MỚI: đồng bộ với JS applyFont() */
+  /* đồng bộ với JS applyFont() */
   --reader-font-size: 18px;
 }
 
 /* ===== Base ===== */
 *{ box-sizing: border-box; }
 html,body{ height:100%; }
+html{ scroll-padding-top: 72px; -webkit-text-size-adjust: 100%; }
 body.rider-bg{
   margin:0;
   font-family: "Segoe UI", Roboto, Arial, sans-serif;
@@ -76,11 +77,13 @@ body.rider-bg{
 
 /* ===== BELT (Nav) ===== */
 .rider-belt{
+  position: sticky; top: 0; z-index: 30;   /* STICKY cho mobile */
   margin-top: 14px;
   background: linear-gradient(90deg, var(--ty-silver), var(--ty-silver-dark));
-  box-shadow: inset 0 -2px 4px rgba(0,0,0,.1);
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,.1), 0 4px 16px rgba(0,0,0,.06);
   padding-bottom: 12px;
   border-top: 1px solid rgba(255,255,255,.6);
+  backdrop-filter: saturate(140%) blur(6px);
 }
 .rider-belt__core{
   width: 86px; height: 12px; border-radius: 0 0 8px 8px;
@@ -112,7 +115,8 @@ body.rider-bg{
   background:#fff; color: var(--ty-green-dark);
   border:2px solid var(--ty-green-dark);
   padding:10px 16px; border-radius:10px;
-  cursor:pointer; font-size:15px;
+  cursor:pointer; font-size:15px; line-height:1;
+  min-height: 44px;                      /* tap target chuẩn mobile */
   transition: all .2s ease;
   box-shadow: var(--shadow);
 }
@@ -161,10 +165,14 @@ body.rider-bg{
 
 .reader-content{
   white-space: pre-line; text-align: justify;
-  color: var(--ty-text); line-height:1.9;
-  /* MỚI: dùng biến để JS điều chỉnh */
+  color: var(--ty-text); line-height:1.92;
   font-size: var(--reader-font-size);
   margin-bottom: 16px;
+  word-break: break-word;
+}
+.reader-content img{
+  max-width: 100%; height: auto; display: block; margin: 10px auto;
+  border-radius: 8px;
 }
 
 /* Progress */
@@ -183,7 +191,7 @@ body.rider-bg{
   display:flex; justify-content:center; gap:10px; flex-wrap:wrap;
 }
 
-/* ===== NEW: RPG Banner cho tên truyện ===== */
+/* ===== RPG Banner ===== */
 .rpg-banner{
   position: relative;
   display: inline-block;
@@ -191,10 +199,8 @@ body.rider-bg{
   border-radius: 10px;
   color: #fff;
   background: linear-gradient(180deg, #3ed07f, #27ae60);
-  border: 2px solid #e9c85c; /* viền vàng */
-  box-shadow:
-    0 2px 0 #1c8a4a inset,
-    0 6px 18px rgba(0,0,0,.18);
+  border: 2px solid #e9c85c;
+  box-shadow: 0 2px 0 #1c8a4a inset, 0 6px 18px rgba(0,0,0,.18);
   text-shadow: 0 1px 0 rgba(0,0,0,.25);
 }
 .rpg-banner::before,
@@ -203,7 +209,7 @@ body.rider-bg{
   position:absolute; top: 50%;
   width: 18px; height: 22px;
   transform: translateY(-50%) skewX(-12deg);
-  background: linear-gradient(180deg, #f3d66b, #d9b541); /* đuôi cờ vàng */
+  background: linear-gradient(180deg, #f3d66b, #d9b541);
   box-shadow: 0 1px 0 rgba(0,0,0,.12) inset;
   clip-path: polygon(0 0, 100% 0, 100% 80%, 50% 100%, 0 80%);
 }
@@ -213,14 +219,10 @@ body.rider-bg{
   transform: translateY(-50%) scaleX(-1) skewX(12deg);
 }
 
-/* ===== NEW: Điều hướng cuối chương ===== */
+/* ===== Điều hướng cuối chương ===== */
 .reader-endnav{
-  display:flex;
-  justify-content:center;
-  gap:12px;
-  flex-wrap:wrap;
-  margin: 12px 0 4px;
-  padding: 12px;
+  display:flex; justify-content:center; gap:12px; flex-wrap:wrap;
+  margin: 12px 0 4px; padding: 12px;
   border-radius: 12px;
   background: linear-gradient(90deg, var(--ty-silver), var(--ty-silver-dark));
   box-shadow: inset 0 -2px 4px rgba(0,0,0,.08), var(--shadow);
@@ -228,8 +230,7 @@ body.rider-bg{
 }
 .reader-endnav::before{
   content:"";
-  width: 44px; height: 10px;
-  border-radius: 999px;
+  width: 44px; height: 10px; border-radius: 999px;
   background: linear-gradient(180deg, #ffffff, var(--ty-silver-dark));
   position: absolute; top: -5px; left: 50%; transform: translateX(-50%);
   box-shadow: 0 6px 10px rgba(0,0,0,.08);
@@ -250,9 +251,7 @@ body.rider-bg{
   text-align:center; color: var(--ty-muted);
   font-size:13px; padding: 10px 16px 24px;
 }
-.rider-tag{
-  letter-spacing:.12em; text-transform:uppercase; opacity:.75;
-}
+.rider-tag{ letter-spacing:.12em; text-transform:uppercase; opacity:.75; }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px){
@@ -261,21 +260,19 @@ body.rider-bg{
   .rider-title{ font-size:24px; }
 }
 @media (max-width: 640px){
+  :root{ --reader-font-size: 19px; }      /* chữ lớn hơn trên mobile */
   .rider-hero__inner{ grid-template-columns: 1fr; }
   .rider-emblem{ display:none; }
+  .rpg-banner{ padding: 8px 14px; font-size: 22px; }
+  .rpg-banner::before, .rpg-banner::after{ width: 14px; height: 18px; left:-10px; right:-10px; }
+  .belt-actions .btn{ flex:1 1 calc(50% - 12px); }  /* nút to, chia 2 cột */
   .reader-content{ font-size: var(--reader-font-size); }
-  .rpg-banner{
-    padding: 8px 14px;
-    font-size: 22px;
-  }
-  .rpg-banner::before,
-  .rpg-banner::after{
-    width: 14px; height: 18px;
-    left: -10px; right: -10px;
-  }
+}
+@media (max-width: 420px){
+  .belt-actions .btn{ flex: 1 1 100%; }   /* màn rất nhỏ: mỗi hàng 1 nút */
 }
 
-/* ===== KamenRider Mode (toggle bằng data-theme="kamenrider") ===== */
+/* ===== Dark theme ===== */
 html[data-theme="kamenrider"] .rider-bg,
 body.rider-bg.dark{
   background: linear-gradient(180deg, #0f1511, #0b140e);
@@ -305,7 +302,6 @@ body.rider-bg.dark .btn:hover{
   background:#1fb565; color:#fff;
 }
 
-
 /* ===== Modal ===== */
 .chapter-modal{
   position: fixed; inset: 0;
@@ -320,27 +316,30 @@ body.rider-bg.dark .btn:hover{
   box-shadow: 0 10px 30px rgba(0,0,0,.15);
   border: 1px solid #edf4ee;
   color: var(--ty-text);
+  max-height: 88vh; display:flex; flex-direction: column;
 }
 .chapter-modal__header{
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px;
   border-bottom: 1px solid #e9f3ec;
+  position: sticky; top:0; background:#fff; z-index:1; /* header sticky */
 }
 .chapter-modal__list{
   list-style: none; margin: 0; padding: 8px 12px 16px;
-  max-height: 60vh; overflow: auto;
+  overflow: auto; flex:1;
 }
 .chapter-link-item{ margin: 6px 0; }
 .chapter-link-btn{
   width: 100%; text-align: left;
   display: flex; gap: 10px; align-items: center;
-  padding: 10px 12px;
+  padding: 12px 14px;
   background: #fff;
   border: 2px solid var(--ty-green-dark);
   color: var(--ty-green-dark);
   border-radius: 10px;
   cursor: pointer;
   transition: all .2s ease;
+  min-height: 44px;
 }
 .chapter-link-btn:hover{
   background: var(--ty-green);
@@ -351,3 +350,8 @@ body.rider-bg.dark .btn:hover{
 .chapter-link-title{ flex: 1; }
 .chapter-modal[hidden]{ display:none !important; }
 
+@media (max-width: 560px){
+  .chapter-modal__dialog{
+    width: 100vw; height: 92vh; border-radius: 0;  /* full-screen trên mobile */
+  }
+}

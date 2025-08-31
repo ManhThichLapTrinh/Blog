@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html lang="vi" data-theme="rider">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#27ae60" />
   <title>Đọc truyện</title>
-  <link rel="stylesheet" href="doc-truyen.css">
+  <link rel="stylesheet" href="doc-truyen.css" />
 </head>
 <body class="rider-bg">
 
-  <!-- Popup danh sách chương (đặt TRONG body) -->
+  <!-- Popup danh sách chương -->
   <div id="chapter-modal" class="chapter-modal" hidden>
     <div class="chapter-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="chapter-modal-title">
       <div class="chapter-modal__header">
@@ -21,27 +23,22 @@
   <!-- Hero + Belt -->
   <header class="rider-hero" role="banner" aria-label="Kamen Rider Reader Header">
     <div class="rider-hero__inner">
-      <!-- Emblem (SVG thuần HTML) -->
       <div class="rider-emblem" aria-hidden="true">
-        <svg viewBox="0 0 120 120" class="rider-emblem__svg">
-          <!-- Mắt lục -->
+        <svg viewBox="0 0 120 120" class="rider-emblem__svg" aria-hidden="true" focusable="false">
           <circle cx="42" cy="52" r="20" class="eye eye--left"></circle>
           <circle cx="78" cy="52" r="20" class="eye eye--right"></circle>
-          <!-- Sừng đỏ -->
           <path d="M15,20 C38,0 82,0 105,20" class="horn"></path>
-          <!-- Nẹp mặt nạ -->
           <rect x="58" y="20" width="4" height="64" class="visor"></rect>
         </svg>
       </div>
 
-      <!-- Tiêu đề truyện -->
       <div class="hero-titles">
         <h1 id="story-title" class="rider-title rpg-banner">Tên truyện</h1>
         <p id="story-intro" class="rider-subtitle">Giới thiệu truyện</p>
       </div>
     </div>
 
-    <!-- Rider Belt (nav bar) -->
+    <!-- Belt (nav) -->
     <nav class="rider-belt" aria-label="Điều hướng chương">
       <div class="rider-belt__core" aria-hidden="true"></div>
       <div class="rider-belt__slots" aria-hidden="true">
@@ -52,7 +49,6 @@
 
       <div class="belt-actions">
         <button id="prev-chapter" class="btn btn--belt" title="Chương trước">⬅️ Chương trước</button>
-        <!-- ĐỔI từ id trùng sang class để khớp JS (.open-chapter-list) -->
         <button class="btn btn--belt open-chapter-list" title="Danh sách chương">📚</button>
         <button id="next-chapter" class="btn btn--belt" title="Chương sau">Chương sau ➡️</button>
         <a id="back-home" class="btn btn--home" href="../index.html" title="Về trang chủ">🏠</a>
@@ -75,20 +71,19 @@
         Nội dung chương...
       </div>
 
-      <!-- Thanh tiến độ đọc -->
+      <!-- Tiến độ -->
       <div class="read-progress" aria-hidden="true">
         <div class="read-progress__bar" style="width: 0%"></div>
       </div>
 
-      <!-- Điều hướng cuối chương -->
+      <!-- Điều hướng cuối -->
       <div class="reader-endnav">
         <button id="end-prev-chapter" class="btn btn--belt">⬅️ Chương trước</button>
-        <!-- Nút danh sách chương phía dưới: dùng CLASS giống bên trên -->
         <button class="btn btn--belt open-chapter-list" title="Danh sách chương">📚</button>
         <button id="end-next-chapter" class="btn btn--belt">Chương sau ➡️</button>
       </div>
 
-      <!-- Nút tiện ích -->
+      <!-- Công cụ -->
       <div class="reader-tools">
         <button id="increase-font" class="btn btn--tool" title="Phóng to chữ">🔍 Phóng to chữ</button>
         <button id="decrease-font" class="btn btn--tool" title="Thu nhỏ chữ">🔎 Thu nhỏ chữ</button>
@@ -97,7 +92,6 @@
     </article>
   </main>
 
-  <!-- Footer nhỏ -->
   <footer class="rider-footer" role="contentinfo">
     <span class="rider-tag">Masked Reader System</span>
   </footer>
