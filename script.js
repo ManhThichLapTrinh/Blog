@@ -218,4 +218,21 @@
 })();
 
 
+// Bóng đổ khi menu “dính”
+(() => {
+  const header = document.querySelector('.top-nav');
+  if (!header) return;
+
+  // Tạo một mốc nằm trước header để biết khi nào header bắt đầu dính
+  const sentinel = document.createElement('div');
+  header.before(sentinel);
+
+  const io = new IntersectionObserver(([entry]) => {
+    // Khi sentinel ra khỏi viewport, header đang dính
+    if (entry.isIntersecting) header.classList.remove('stuck');
+    else header.classList.add('stuck');
+  }, {rootMargin: "0px 0px 0px 0px"});
+
+  io.observe(sentinel);
+})();
 

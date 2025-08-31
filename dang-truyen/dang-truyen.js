@@ -13,6 +13,10 @@ const chapterTitleInput = document.getElementById("chapter-title");
 const chapterContentInput = document.getElementById("chapter-content");
 const cancelEditBtn = document.getElementById("cancel-edit");
 
+// Ảnh bìa
+const coverInput = document.getElementById("story-cover");
+const coverPreview = document.getElementById("story-cover-preview");
+
 // ===== State & Storage =====
 let savedStories = (() => {
   try { return JSON.parse(localStorage.getItem("storyData")) || []; }
@@ -20,22 +24,79 @@ let savedStories = (() => {
 })();
 let selectedStoryIndex = null;
 
-// Ghi local + (nếu có) ghi cloud qua js/firebase.js
+// ===== Utils =====
 async function save() {
   try {
     if (typeof window.saveStories === "function") {
-      await window.saveStories(savedStories); // ghi Firestore + local
+      await window.saveStories(savedStories); // Firestore + local
     } else {
-      localStorage.setItem("storyData", JSON.stringify(savedStories)); // chỉ local
+      localStorage.setItem("storyData", JSON.stringify(savedStories)); // local
     }
   } catch (e) {
     console.error("Lưu dữ liệu lỗi:", e);
     localStorage.setItem("storyData", JSON.stringify(savedStories));
   }
 }
+const isoNow = () => new Date().toISOString();
 
-function isoNow() {
-  return new Date().toISOString();
+const NO_COVER_DATAURL =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"><rect width="100%" height="100%" fill="#e9f3ec"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#6b8a7a">No Cover</text></svg>'
+  );
+
+// ==== Helper: chuyển file ảnh -> base64, có nén kích thước ====
+// opts: { maxW, maxH, quality }
+async function fileToBase64Resized(file, opts = {}) {
+  const { maxW = 512, maxH = 512, quality = 0.8 } = opts;
+  const createBitmap = "createImageBitmap" in window
+    ? window.createImageBitmap(file)
+    : new Promise((res, rej) => {
+        const img = new Image();
+        img.onload = () => res(img);
+        img.onerror = rej;
+        img.src = URL.createObjectURL(file);
+      });
+  const bitmap = await createBitmap;
+  const ratio = Math.min(maxW / bitmap.width, maxH / bitmap.height, 1);
+  const w = Math.max(1, Math.round(bitmap.width * ratio));
+  const h = Math.max(1, Math.round(bitmap.height * ratio));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(bitmap, 0, 0, w, h);
+
+  const type = /png/i.test(file.type) ? "image/png" : "image/jpeg";
+  return canvas.toDataURL(type, quality); // -> "data:image/jpeg;base64,..."
+}
+
+// Chuẩn hoá nguồn ảnh bìa (hỗ trợ nhiều schema)
+function getCoverSrc(story) {
+  if (!story) return "";
+  const c = story.cover ?? story.image ?? story.thumbnail ?? "";
+  if (!c) return "";
+  if (typeof c === "string") {
+    if (c.startsWith("gs://")) return "";      // không load trực tiếp được
+    // data:image/*;base64,... hoặc http(s) đều OK
+    try { return new URL(c, window.location.href).href; } catch { return c; }
+  }
+  if (typeof c === "object") return c.url || "";
+  return "";
+}
+
+function safeThumbElement(story) {
+  const img = document.createElement("img");
+  img.className = "thumb";
+  img.alt = "Bìa";
+  img.loading = "lazy";
+  img.decoding = "async";
+  img.referrerPolicy = "no-referrer";
+
+  const src = getCoverSrc(story);
+  img.src = src || NO_COVER_DATAURL;
+  img.onerror = () => { img.src = NO_COVER_DATAURL; };
+  return img;
 }
 
 // ===== Render danh sách truyện =====
@@ -56,21 +117,35 @@ function renderStories() {
     li.className = "story-item";
     li.dataset.index = index;
 
-    li.innerHTML = `
-      <button class="story-select">${story.title}</button>
-      <span class="story-date">(${new Date(story.createdAt || Date.now()).toLocaleDateString()})</span>
-      <div class="story-actions">
-        <button class="delete-story-btn" title="Xóa truyện">🗑️</button>
-      </div>
-    `;
+    // cột 1: thumbnail bìa
+    const thumb = safeThumbElement(story);
 
-    // Chọn truyện
-    li.querySelector(".story-select").addEventListener("click", () => {
-      selectStory(index);
-    });
+    // cột 2: nút chọn truyện (tiêu đề + ngày)
+    const titleBtn = document.createElement("button");
+    titleBtn.className = "story-select";
+    titleBtn.textContent = story.title || `Truyện #${index + 1}`;
+    titleBtn.addEventListener("click", () => selectStory(index));
 
-    // Xóa truyện (cải thiện: tự chọn truyện kế tiếp nếu còn)
-    li.querySelector(".delete-story-btn").addEventListener("click", async (e) => {
+    const dateSpan = document.createElement("span");
+    dateSpan.className = "story-date";
+    const created = story.createdAt || Date.now();
+    dateSpan.textContent = `(${new Date(created).toLocaleDateString()})`;
+
+    const titleWrap = document.createElement("div");
+    titleWrap.style.display = "flex";
+    titleWrap.style.alignItems = "center";
+    titleWrap.style.gap = "6px";
+    titleWrap.appendChild(titleBtn);
+    titleWrap.appendChild(dateSpan);
+
+    // cột 3: actions
+    const act = document.createElement("div");
+    act.className = "story-actions";
+    const delBtn = document.createElement("button");
+    delBtn.className = "delete-story-btn";
+    delBtn.title = "Xóa truyện";
+    delBtn.textContent = "🗑️";
+    delBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       const name = story.title || "truyện";
       if (!confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) return;
@@ -80,17 +155,20 @@ function renderStories() {
       await save();
 
       if (savedStories.length) {
-        // nếu còn truyện → chọn truyện gần nhất vị trí cũ
         selectedStoryIndex = Math.min(wasIndex, savedStories.length - 1);
         selectStory(selectedStoryIndex);
       } else {
-        // không còn truyện
         selectedStoryIndex = null;
         chapterSection.hidden = true;
       }
       renderStories();
     });
+    act.appendChild(delBtn);
 
+    // ghép vào li
+    li.appendChild(thumb);
+    li.appendChild(titleWrap);
+    li.appendChild(act);
     storyList.appendChild(li);
   });
 
@@ -110,7 +188,7 @@ function selectStory(index) {
     return;
   }
   selectedStoryName.textContent = s.title;
-  selectedStoryIntro.textContent = s.intro;
+  selectedStoryIntro.textContent = s.intro || "";
   chapterSection.hidden = false;
   chapterForm.hidden = true;
   renderChapters();
@@ -120,7 +198,7 @@ function selectStory(index) {
   if (active) active.classList.add("active");
 }
 
-// ===== Thêm truyện mới =====
+// ===== Thêm truyện mới (Base64 – không dùng Storage) =====
 postStoryForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const title = document.getElementById("story-title").value.trim();
@@ -128,19 +206,57 @@ postStoryForm.addEventListener("submit", async function (e) {
   const createdAt = isoNow();
   if (!title || !intro) return;
 
-  // Ưu tiên dùng API cloud nếu có
+  let coverValue = "";
+  const file = coverInput?.files?.[0] || null;
+
+  try {
+    if (file) {
+      // nén và convert sang base64 để lưu
+      coverValue = await fileToBase64Resized(file, { maxW: 512, maxH: 512, quality: 0.8 });
+    } else if (coverPreview?.dataset?.src) {
+      coverValue = coverPreview.dataset.src; // base64 preview sẵn
+    }
+  } catch (err) {
+    console.warn("Convert cover to base64 lỗi:", err);
+  }
+
   if (typeof window.addStory === "function") {
-    await window.addStory({ title, intro, chapters: [] });
+    await window.addStory({ title, intro, cover: coverValue, chapters: [] });
     savedStories = window.getStories(); // lấy bản mới nhất
   } else {
-    savedStories.unshift({ title, intro, createdAt, chapters: [] });
+    savedStories.unshift({ title, intro, cover: coverValue, createdAt, chapters: [] });
     await save();
   }
 
   renderStories();
   postStoryForm.reset();
+  if (coverPreview) {
+    coverPreview.textContent = "Chưa chọn ảnh";
+    delete coverPreview.dataset.src;
+  }
   selectStory(0);
 });
+
+// Preview ảnh bìa khi chọn file (dùng nén nhỏ để preview mượt)
+if (coverInput && coverPreview) {
+  coverInput.addEventListener("change", async () => {
+    const file = coverInput.files && coverInput.files[0];
+    if (!file) {
+      coverPreview.textContent = "Chưa chọn ảnh";
+      delete coverPreview.dataset.src;
+      return;
+    }
+    try {
+      const dataUrl = await fileToBase64Resized(file, { maxW: 256, maxH: 256, quality: 0.8 });
+      coverPreview.innerHTML = `<img src="${dataUrl}" alt="Bìa truyện">`;
+      coverPreview.dataset.src = dataUrl; // base64 cho submit
+    } catch (e) {
+      console.warn("Preview cover lỗi:", e);
+      coverPreview.textContent = "Không xem trước được";
+      delete coverPreview.dataset.src;
+    }
+  });
+}
 
 // ===== Render danh sách chương =====
 function renderChapters() {
@@ -228,28 +344,47 @@ cancelEditBtn.addEventListener("click", () => {
   chapterContentInput.value = "";
 });
 
-// ===== Lưu chương =====
+// ===== Lưu chương (AUTO lấy dòng đầu làm tiêu đề & xóa dòng đó) =====
 chapterForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const story = savedStories[selectedStoryIndex];
   if (!story) return;
 
-  const title = chapterTitleInput.value.trim();
-  const content = chapterContentInput.value.trim();
-  if (!title || !content) return;
+  const raw = (chapterContentInput.value || "").replace(/\r\n/g, "\n");
+  const lines = raw.split("\n");
+  const firstIdx = lines.findIndex((ln) => ln.trim() !== "");
+  const firstLine = firstIdx >= 0 ? lines[firstIdx] : "";
+  let autoTitle = firstLine.replace(/^#{1,6}\s*/, "").trim();
+  if (!autoTitle) autoTitle = (chapterTitleInput.value || "Chương mới").trim();
+
+  const body =
+    firstIdx >= 0
+      ? lines
+          .slice(0, firstIdx)
+          .concat(lines.slice(firstIdx + 1))
+          .join("\n")
+          .replace(/^\s*\n+/, "")
+          .replace(/\n+\s*$/, "")
+      : raw;
 
   const editIdxRaw = editIndexInput.value;
   const isEditing = editIdxRaw !== "";
+
   if (isEditing) {
     const idx = Number(editIdxRaw);
     if (story.chapters && story.chapters[idx]) {
-      story.chapters[idx].title = title;
-      story.chapters[idx].content = content;
+      story.chapters[idx].title = autoTitle;
+      story.chapters[idx].content = body;
       story.chapters[idx].updatedAt = isoNow();
     }
   } else {
     if (!Array.isArray(story.chapters)) story.chapters = [];
-    story.chapters.push({ title, content, createdAt: isoNow(), updatedAt: isoNow() });
+    story.chapters.push({
+      title: autoTitle,
+      content: body,
+      createdAt: isoNow(),
+      updatedAt: isoNow(),
+    });
   }
   story.updatedAt = isoNow();
 
@@ -272,7 +407,7 @@ try {
 renderStories();
 if (savedStories[0]) selectStory(0);
 
-// 🔔 Lắng nghe tín hiệu đồng bộ từ firebase.js (realtime + push)
+// Realtime sync (nếu dùng firebase.js)
 window.addEventListener("stories-updated", () => {
   try {
     let list;
@@ -286,7 +421,6 @@ window.addEventListener("stories-updated", () => {
 
     renderStories();
 
-    // nếu đang không chọn truyện nào hoặc index cũ không hợp lệ → chọn truyện đầu
     if (savedStories.length && (selectedStoryIndex == null || !savedStories[selectedStoryIndex])) {
       selectStory(0);
     } else if (!savedStories.length) {
@@ -297,7 +431,7 @@ window.addEventListener("stories-updated", () => {
   }
 });
 
-// optional: refresh lại để bắt kịp cloud khi vừa sync xong
+// Optional: refresh nhẹ sau khi đồng bộ cloud
 setTimeout(() => {
   try {
     if (typeof window.getStories === "function") {

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="kamenrider">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Truyện đã đăng</title>
+  <link rel="icon" href="../images/icon.png" type="image/png">
+  <!-- CSS chung -->
+  <link rel="stylesheet" href="../style.css" />
+  <!-- CSS riêng -->
+  <link rel="stylesheet" href="./truyen-da-dang.css" />
+</head>
+<body class="rider-bg">
+  <header class="top-nav" role="banner">
+    <div class="logo">TuanManh</div>
+    <div class="login-menu">
+      <button class="login-btn" id="btn-login" type="button" aria-haspopup="true" aria-expanded="false">🔑 Đăng nhập</button>
+      <div class="login-menu__panel" id="login-panel" style="display:none;">
+        <div id="user-info">👤 User</div>
+        <a class="login-menu__item" href="../dang-truyen/dang-truyen.html">Đăng truyện</a>
+        <button class="login-menu__item" id="btn-logout" type="button">Đăng xuất</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-wrap" id="app">
+    <div class="page-header">
+      <h1 class="page-title">Truyện đã đăng</h1>
+    </div>
+
+    <div class="tool-row">
+      <input id="search" class="search-input" type="search" placeholder="Tìm theo tiêu đề…" aria-label="Tìm theo tiêu đề" />
+      <select id="sort" class="select-sort" aria-label="Sắp xếp">
+        <option value="latest">Mới cập nhật</option>
+        <option value="chapters">Nhiều chương nhất</option>
+        <option value="alpha">A → Z</option>
+      </select>
+      <!-- ✅ đổi nút sang Home -->
+      <a class="btn-primary" href="../index.html" aria-label="Về trang chủ">Home</a>
+    </div>
+
+    <div id="list" class="story-list" aria-live="polite"></div>
+
+    <div id="empty" class="empty" style="display:none;">
+      Chưa có truyện nào. Hãy bắt đầu bằng cách
+      <a href="../dang-truyen/dang-truyen.html"><strong>đăng truyện mới</strong></a>.
+    </div>
+  </main>
+
+  <!-- ✅ Footer mới -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <span class="brand">TuanManh Blog</span><span class="dot">•</span>
+      <a href="../index.html" class="footer-link">Home</a>
+      <span class="spacer"></span>
+      <span>© 2025</span>
+    </div>
+  </footer>
+
+  <script defer src="./truyen-da-dang.js"></script>
+</body>
+</html>

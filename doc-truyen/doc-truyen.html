@@ -6,6 +6,8 @@
   <meta name="theme-color" content="#27ae60" />
   <title>Đọc truyện</title>
   <link rel="stylesheet" href="doc-truyen.css" />
+  <link rel="icon" href="../images/icon.png" type="image/png">
+
 </head>
 <body class="rider-bg">
 
@@ -23,18 +25,15 @@
   <!-- Hero + Belt -->
   <header class="rider-hero" role="banner" aria-label="Kamen Rider Reader Header">
     <div class="rider-hero__inner">
+      <!-- Ảnh bìa truyện (thay cho SVG) -->
       <div class="rider-emblem" aria-hidden="true">
-        <svg viewBox="0 0 120 120" class="rider-emblem__svg" aria-hidden="true" focusable="false">
-          <circle cx="42" cy="52" r="20" class="eye eye--left"></circle>
-          <circle cx="78" cy="52" r="20" class="eye eye--right"></circle>
-          <path d="M15,20 C38,0 82,0 105,20" class="horn"></path>
-          <rect x="58" y="20" width="4" height="64" class="visor"></rect>
-        </svg>
+        <img id="story-cover-img" class="rider-emblem__img" alt="Bìa truyện" />
       </div>
 
       <div class="hero-titles">
         <h1 id="story-title" class="rider-title rpg-banner">Tên truyện</h1>
-        <p id="story-intro" class="rider-subtitle">Giới thiệu truyện</p>
+        <!-- Bỏ giới thiệu truyện -->
+        <!-- <p id="story-intro" class="rider-subtitle">Giới thiệu truyện</p> -->
       </div>
     </div>
 
@@ -61,10 +60,13 @@
     <article class="rider-reader" aria-labelledby="chapter-title">
       <header class="reader-header">
         <h2 id="chapter-title" class="reader-title">Tên chương</h2>
+        <!-- Bỏ meta của chương -->
+        <!--
         <div class="reader-meta">
           <span class="meta-chip meta-chip--green">Henshin</span>
           <span class="meta-chip meta-chip--red">Episode</span>
         </div>
+        -->
       </header>
 
       <div id="chapter-content" class="reader-content">

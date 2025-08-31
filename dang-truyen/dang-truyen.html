@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Đăng Truyện - TuanManh Blog</title>
   <link rel="stylesheet" href="dang-truyen.css">
+  <link rel="icon" href="../images/icon.png" type="image/png">
+
 </head>
 <body>
 
@@ -14,15 +16,23 @@
   <!-- Danh sách truyện -->
   <div class="story-section">
     <h4>Đã đăng</h4>
-    <ul id="story-list"></ul>
+    <ul id="story-list" aria-live="polite"></ul>
   </div>
 
   <!-- Thêm truyện mới -->
   <div class="story-section">
     <h4>Thêm truyện mới</h4>
-    <form id="post-story-form" class="form-vertical">
-      <input type="text" id="story-title" placeholder="Tên truyện" required>
-      <textarea id="story-intro" placeholder="Giới thiệu truyện" rows="3" required></textarea>
+
+    <form id="post-story-form" class="form-vertical" autocomplete="off">
+      <input type="text" id="story-title" placeholder="Tên truyện" required aria-label="Tên truyện">
+      <textarea id="story-intro" placeholder="Giới thiệu truyện" rows="3" required aria-label="Giới thiệu truyện"></textarea>
+
+      <!-- ẢNH BÌA TRUYỆN -->
+      <label class="cover-field" for="story-cover">Ảnh bìa (tùy chọn)</label>
+      <input type="file" id="story-cover" accept="image/*" aria-describedby="cover-hint">
+      <div id="story-cover-preview" class="cover-preview" role="img" aria-label="Xem trước ảnh bìa">Chưa chọn ảnh</div>
+      <small id="cover-hint" style="color:#777">Nên dùng ảnh đứng (ví dụ 600×800). Ảnh sẽ được lưu kèm truyện.</small>
+
       <button type="submit">Thêm truyện</button>
     </form>
   </div>
@@ -33,8 +43,8 @@
     <header class="story-header">
       <h3 id="selected-story-name">Tên truyện</h3>
       <div class="story-header-actions">
-        <button id="toggle-chapter-list" class="toggle-btn" aria-label="Ẩn/hiện danh sách chương">≡</button>
-        <button id="add-chapter-btn" class="toggle-btn" aria-label="Thêm chương">+</button>
+        <button id="toggle-chapter-list" class="toggle-btn" aria-label="Ẩn/hiện danh sách chương" type="button">≡</button>
+        <button id="add-chapter-btn" class="toggle-btn" aria-label="Thêm chương" type="button">+</button>
       </div>
     </header>
 
@@ -46,8 +56,8 @@
     <!-- Form thêm/sửa chương -->
     <form id="chapter-form" class="form-vertical" hidden>
       <input type="hidden" id="edit-index" value="">
-      <input type="text" id="chapter-title" placeholder="Tên chương" required>
-      <textarea id="chapter-content" placeholder="Nội dung chương" rows="4" required></textarea>
+      <input type="text" id="chapter-title" placeholder="Tên chương" required aria-label="Tên chương">
+      <textarea id="chapter-content" placeholder="Nội dung chương" rows="4" required aria-label="Nội dung chương"></textarea>
       <div class="form-actions">
         <button type="submit">Lưu chương</button>
         <button type="button" id="cancel-edit" class="btn-secondary">Hủy</button>

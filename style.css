@@ -552,3 +552,153 @@ footer {
   }
 }
 
+
+/* ===== Modern Sidebar (override) ===== */
+.sidebar{
+  position: sticky;           /* bám theo khi cuộn */
+  top: 72px;                  /* chỉnh theo chiều cao header của bạn */
+  align-self: start;
+  background: #fff;
+  border: 1px solid #f1f1f1;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+}
+
+/* Tiêu đề trong sidebar */
+.sidebar h3{
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  color: #ff0000;
+  letter-spacing: .2px;
+  position: relative;
+  padding-bottom: 6px;
+}
+.sidebar h3::after{
+  content:"";
+  position:absolute; left:0; bottom:0;
+  width: 42px; height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff6a6a, #ff0000);
+  box-shadow: 0 1px 6px rgba(255,0,0,.25);
+}
+
+/* Danh sách link trong sidebar */
+.sidebar ul{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.sidebar ul li{
+  width: 100%;
+}
+.sidebar ul li a{
+  display: grid;
+  grid-template-columns: 10px 1fr; /* chấm tròn + text */
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #222;
+  padding: 10px 12px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease;
+}
+.sidebar ul li a::before{
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffb3b3, #ff3b3b);
+  box-shadow: 0 0 0 2px #ffe5e5 inset;
+}
+.sidebar ul li a:hover{
+  background: #fff7f7;
+  border-color: #ffd6d6;
+  box-shadow: 0 6px 16px rgba(255,0,0,.10);
+  transform: translateX(2px);
+}
+
+/* Box con trong sidebar như "Lịch sự kiện", "SNS" ở cột phải container */
+.sidebar .calendar, 
+.sidebar .sns{
+  background: #fff;
+  border: 1px solid #f1f1f1;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.05);
+}
+.sidebar .calendar h3,
+.sidebar .sns h3{
+  margin-top: 0;
+}
+.sidebar .calendar ul,
+.sidebar .sns ul{
+  margin-top: 8px;
+}
+
+/* “Chip” nho nhỏ (nếu bạn thêm sau này) */
+.sidebar .chip{
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid #ffd6d6;
+  background: #fff7f7;
+  color: #b30000;
+  font-size: 12px;
+}
+
+/* Khoảng cách giữa nhiều nhóm trong cùng 1 sidebar */
+.sidebar > * + *{
+  margin-top: 14px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1024px){
+  .sidebar{ top: 64px; }
+}
+@media (max-width: 768px){
+  .sidebar{
+    position: static; /* về bình thường khi mobile xếp cột */
+    top: auto;
+    border-radius: 14px;
+  }
+  .sidebar ul{
+    gap: 10px;
+  }
+  .sidebar ul li a{
+    padding: 12px;
+  }
+}
+
+
+/* ===== Sticky Top Nav ===== */
+.top-nav{
+  position: sticky;     /* bám đỉnh khi cuộn */
+  top: 0;
+  z-index: 1000;        /* nổi trên nội dung */
+  background: #ffffff;  /* đảm bảo nền đục */
+  backdrop-filter: saturate(140%) blur(6px); /* nhẹ nhàng hơn khi cuộn (optional) */
+  transition: box-shadow .2s ease;
+}
+
+/* Bóng đổ khi đã “dính” (class này sẽ bật bằng JS bên dưới) */
+.top-nav.stuck{
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+
+/* Giữ panel đăng nhập nổi cao hơn nội dung */
+.login-menu__panel{ z-index: 1200; }
+
+/* Nếu bạn đang dùng khung canh lề cho header */
+.top-nav__inner{
+  max-width: 1200px;    /* khớp với layout/Sidebar */
+  margin: 0 auto;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+}

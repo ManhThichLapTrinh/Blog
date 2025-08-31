@@ -36,6 +36,10 @@ const chapterTitleEl = document.getElementById("chapter-title");
 const chapterContentEl = document.getElementById("chapter-content");
 const progressBarEl = document.querySelector(".read-progress__bar");
 
+// NEW: ảnh bìa trên Hero + phần Hero để set nền mờ
+const storyCoverImgEl = document.getElementById("story-cover-img");
+const heroEl = document.querySelector(".rider-hero");
+
 // Belt buttons (trên)
 const prevTopBtn = document.getElementById("prev-chapter");
 const nextTopBtn = document.getElementById("next-chapter");
@@ -62,12 +66,10 @@ const THEME_ATTR = "data-theme";
 const THEME_KEY = "readerTheme";
 const htmlEl = document.documentElement;
 
-
 let baseFont = parseInt(localStorage.getItem(FONT_KEY) || "18", 10);
 baseFont = clamp(Number.isFinite(baseFont) ? baseFont : 18, 14, 28);
 
 function applyFont() {
-  // Dùng CSS variable cho mượt & đồng bộ
   htmlEl.style.setProperty("--reader-font-size", baseFont + "px");
 }
 function saveFont() {
@@ -86,6 +88,72 @@ function toggleTheme() {
   const next = cur === "rider-dark" ? "rider" : "rider-dark";
   htmlEl.setAttribute(THEME_ATTR, next);
   localStorage.setItem(THEME_KEY, next);
+}
+
+// ====================
+// NEW: ẢNH BÌA & NỀN MỜ RPG
+// ====================
+
+// Lấy src ảnh đầu tiên trong HTML (fallback nếu không có cover riêng)
+function extractFirstImageSrc(html) {
+  try {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    const img = tmp.querySelector("img");
+    return img?.getAttribute("src") || "";
+  } catch {
+    return "";
+  }
+}
+
+// Chọn ảnh bìa ưu tiên từ story.cover (trang đăng đã lưu base64),
+// nếu không có thì thử ảnh đầu tiên của chương hiện tại/đầu tiên.
+function pickCoverFromStory(story) {
+  if (!story || typeof story !== "object") return "";
+  const direct =
+    story.cover || story.coverUrl || story.thumbnail ||
+    story?.meta?.cover || story?.images?.cover;
+  if (typeof direct === "string" && direct.trim()) return direct.trim();
+
+  const chapters = story.chapters || [];
+  const ch = chapters[chapterIndex] || chapters[0];
+  if (ch?.content) {
+    const src = extractFirstImageSrc(ch.content);
+    if (src) return src;
+  }
+  return "";
+}
+
+// Gắn ảnh vào <img id="story-cover-img"> và set nền mờ trên .rider-hero
+function renderCoverFor(story) {
+  const cover = pickCoverFromStory(story);
+
+  // Ảnh bìa (icon)
+  if (storyCoverImgEl) {
+    if (cover) {
+      storyCoverImgEl.src = cover;
+      storyCoverImgEl.alt = `Bìa: ${story.title || "Truyện"}`;
+      storyCoverImgEl.removeAttribute("data-empty");
+      storyCoverImgEl.style.removeProperty("background");
+    } else {
+      storyCoverImgEl.removeAttribute("src");
+      storyCoverImgEl.alt = "Không có ảnh bìa";
+      storyCoverImgEl.setAttribute("data-empty", "1");
+      storyCoverImgEl.style.background = "linear-gradient(135deg, #2b3345, #1a2235)";
+    }
+  }
+
+  // Nền mờ (RPG banner)
+  if (heroEl) {
+    if (cover) {
+      // dùng CSS variable để ::before load background
+      heroEl.style.setProperty("--hero-cover-url", `url("${cover}")`);
+      heroEl.setAttribute("data-has-cover", "1");
+    } else {
+      heroEl.style.removeProperty("--hero-cover-url");
+      heroEl.removeAttribute("data-has-cover");
+    }
+  }
 }
 
 // ---------------- Tiến độ đọc theo cuộn ----------------
@@ -349,6 +417,9 @@ function renderChapter(isManualScroll = false) {
   // header truyện
   if (storyTitleEl) storyTitleEl.textContent = story.title || "Không có tiêu đề";
   if (storyIntroEl) storyIntroEl.textContent = story.intro || "";
+
+  // NEW: cập nhật ảnh bìa + nền mờ hero từ dữ liệu đã đăng
+  renderCoverFor(story);
 
   const chapters = currentChapters();
   const chapter = chapters[chapterIndex];

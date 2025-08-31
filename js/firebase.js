@@ -16,7 +16,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA7Q7ivZIm3L4w2p7Cwp28PZDPfREv6Er8",
   authDomain: "blog-ab9bb.firebaseapp.com",
   projectId: "blog-ab9bb",
-  storageBucket: "blog-ab9bb.firebasestorage.app",
+  storageBucket: "blog-ab9bb.firebasestorage.app", // không dùng Storage ở bản free, vẫn để nguyên
   messagingSenderId: "160345742636",
   appId: "1:160345742636:web:4fc69a7a7d0c7a3e356089",
   measurementId: "G-Y7JGMGGKCT",
@@ -24,16 +24,16 @@ const firebaseConfig = {
 
 /* ===== Init ===== */
 const app  = initializeApp(firebaseConfig);
-const auth = getAuth(app);              // dùng getAuth cho web tĩnh
+const auth = getAuth(app);
 const db   = getFirestore(app);
 auth.languageCode = "vi";
 
-// Đảm bảo session được giữ lại sau redirect/popup
+// Giữ phiên đăng nhập
 setPersistence(auth, browserLocalPersistence).catch(err => {
   console.warn("[auth] setPersistence failed:", err?.code, err?.message);
 });
 
-// Provider
+// Google provider
 const provider = new GoogleAuthProvider();
 provider.setCustomParameters({ prompt: "select_account" });
 
@@ -48,8 +48,6 @@ function loadLocal() {
 function saveLocal(list) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }
-
-// 🔔 phát sự kiện để các trang khác (dang-truyen.js) tự refresh
 function notifyStoriesUpdated() {
   try { window.dispatchEvent(new CustomEvent("stories-updated")); } catch {}
 }
@@ -77,7 +75,7 @@ async function pushCloudIfLoggedIn(stories) {
   // luôn cập nhật local + UI
   saveLocal(stories);
   renderSidebarStories();
-  notifyStoriesUpdated(); // 🔔 báo cho trang khác
+  notifyStoriesUpdated();
 
   const user = auth.currentUser;
   if (user) {
@@ -93,11 +91,13 @@ window.saveStories = async (stories) => {
   return stories;
 };
 
-window.addStory = async ({ title, intro = "", chapters = [] }) => {
+/* ✅ FIX: lưu cả cover (base64/URL) khi thêm truyện */
+window.addStory = async ({ title, intro = "", cover = "", chapters = [] }) => {
   const list = loadLocal();
   list.push({
     title: (title||"").trim() || "Truyện không tên",
     intro: (intro||"").trim(),
+    cover: cover || "",                // <— thêm dòng này
     chapters: Array.isArray(chapters) ? chapters : [],
     createdAt: Date.now(),
     updatedAt: Date.now()
@@ -106,6 +106,7 @@ window.addStory = async ({ title, intro = "", chapters = [] }) => {
   return list;
 };
 
+/* Cho phép cập nhật bất kỳ trường nào (kể cả cover) */
 window.updateStory = async (index, patch) => {
   const list = loadLocal();
   if (!list[index]) return list;
@@ -135,22 +136,14 @@ document.addEventListener("DOMContentLoaded", () => {
     loginPanel.style.display = (loginPanel.style.display==="none" || !loginPanel.style.display) ? "block" : "none";
   };
 
-  // Đăng nhập: thử POPUP trước, nếu fail thì REDIRECT
+  // Đăng nhập: popup → fallback redirect
   loginBtn?.addEventListener("click", async () => {
-    if (auth.currentUser) {
-      togglePanel();
-      return;
-    }
+    if (auth.currentUser) { togglePanel(); return; }
     try {
-      console.log("[login] trying popup…");
       await signInWithPopup(auth, provider);
-      console.log("[login] popup success");
     } catch (e) {
-      console.warn("[login] popup failed:", e?.code, e?.message);
-      console.log("[login] fallback to redirect…");
-      try {
-        await signInWithRedirect(auth, provider);
-      } catch (err) {
+      try { await signInWithRedirect(auth, provider); }
+      catch (err) {
         console.error("[login] redirect failed:", err?.code, err?.message);
         alert("Không đăng nhập được: " + (err?.message || err));
       }
@@ -170,74 +163,55 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!inside) closePanel();
   });
 
-  // Nhận kết quả sau redirect (log chi tiết)
-  getRedirectResult(auth)
-    .then(res => {
-      if (res?.user) console.log("[login] redirect OK:", res.user.email || res.user.uid);
-    })
-    .catch(err => console.error("[login] redirect error:", err?.code, err?.message));
+  // Kết quả sau redirect
+  getRedirectResult(auth).catch(err =>
+    console.error("[login] redirect error:", err?.code, err?.message)
+  );
 
-  // Cập nhật UI theo trạng thái đăng nhập
+  // Theo dõi trạng thái đăng nhập
   onAuthStateChanged(auth, async (user) => { 
-  console.log("[auth state]", user ? "signed in" : "signed out");
-  console.log("[user uid]", user?.uid || "(none)");
+    if (user) {
+      const name = user.displayName || user.email || "Đã đăng nhập";
+      const loginBtnEl = document.getElementById("btn-login");
+      const userInfoEl2 = document.getElementById("user-info");
+      if (loginBtnEl) { loginBtnEl.textContent = `👤 ${name}`; loginBtnEl.title = "Mở tài khoản / đăng xuất"; }
+      if (userInfoEl2) userInfoEl2.textContent = `👤 ${name}`;
 
-  if (user) {
-    // cập nhật nút/label
-    const name = user.displayName || user.email || "Đã đăng nhập";
-    const loginBtn   = document.getElementById("btn-login");
-    const userInfoEl = document.getElementById("user-info");
-    if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title = "Mở tài khoản / đăng xuất"; }
-    if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
+      const ref = userDocRef(user.uid);
+      let snap = null;
+      try { snap = await getDoc(ref); }
+      catch (e) { console.error("[firestore] getDoc error:", e?.code, e?.message); }
 
-    const ref = userDocRef(user.uid);
-    let snap = null;
-    try {
-      snap = await getDoc(ref);
-    } catch (e) {
-      console.error("[firestore] getDoc error:", e?.code, e?.message);
-    }
+      const local = loadLocal();
 
-    const local = loadLocal();
+      if (snap && snap.exists() && Array.isArray(snap.data().stories)) {
+        const cloudStories = snap.data().stories || [];
+        saveLocal(cloudStories);
+        renderSidebarStories();
+        window.dispatchEvent(new Event("stories-updated"));
+      } else if (local.length) {
+        await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
+      }
 
-    if (snap && snap.exists() && Array.isArray(snap.data().stories)) {
-      // có dữ liệu cloud -> ghi local và phát sự kiện cập nhật
-      const cloudStories = snap.data().stories || [];
-      console.log("[stories from cloud]", cloudStories.length);
-      saveLocal(cloudStories);
-      renderSidebarStories();
-      window.dispatchEvent(new Event("stories-updated"));
-    } else if (local.length) {
-      // cloud trống nhưng local có -> đẩy lên cloud
-      await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
-      console.log("[cloud init] uploaded local stories:", local.length);
+      if (unsubscribeCloud) unsubscribeCloud();
+      unsubscribeCloud = onSnapshot(ref, (s) => {
+        const arr = (s.exists() && Array.isArray(s.data().stories)) ? s.data().stories : [];
+        saveLocal(arr);
+        renderSidebarStories();
+        window.dispatchEvent(new Event("stories-updated"));
+      });
+
     } else {
-      console.log("[cloud empty + local empty]");
-    }
-
-    // realtime subscribe
-    if (unsubscribeCloud) unsubscribeCloud();
-    unsubscribeCloud = onSnapshot(ref, (s) => {
-      const arr = (s.exists() && Array.isArray(s.data().stories)) ? s.data().stories : [];
-      console.log("[snapshot] stories:", arr.length);
-      saveLocal(arr);
+      const loginBtnEl = document.getElementById("btn-login");
+      const userInfoEl2 = document.getElementById("user-info");
+      if (loginBtnEl)  { loginBtnEl.textContent = "🔑 Đăng nhập"; loginBtnEl.title = "Đăng nhập Google"; }
+      if (userInfoEl2) userInfoEl2.textContent = "👤 User";
+      const loginPanelEl = document.getElementById("login-panel");
+      if (loginPanelEl) loginPanelEl.style.display = "none";
+      if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud = null; }
       renderSidebarStories();
-      window.dispatchEvent(new Event("stories-updated"));
-    });
-
-  } else {
-    // signed out
-    const loginBtn   = document.getElementById("btn-login");
-    const userInfoEl = document.getElementById("user-info");
-    if (loginBtn)  { loginBtn.textContent = "🔑 Đăng nhập"; loginBtn.title = "Đăng nhập Google"; }
-    if (userInfoEl) userInfoEl.textContent = "👤 User";
-    const loginPanel = document.getElementById("login-panel");
-    if (loginPanel) loginPanel.style.display = "none";
-    if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud = null; }
-    renderSidebarStories();
-  }
-});
-
+    }
+  });
 });
 
 /* Render sidebar lần đầu (nếu có) */
