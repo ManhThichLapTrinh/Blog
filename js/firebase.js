@@ -185,41 +185,62 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     if (user) {
-      const name = user.displayName || user.email || "Đã đăng nhập";
-      if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title="Mở tài khoản / đăng xuất"; }
-      if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
+    // cập nhật nút/label
+    const name = user.displayName || user.email || "Đã đăng nhập";
+    const loginBtn   = document.getElementById("btn-login");
+    const userInfoEl = document.getElementById("user-info");
+    if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title = "Mở tài khoản / đăng xuất"; }
+    if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
 
-      // Đồng bộ stories
-      const ref = userDocRef(user.uid);
-      const snap= await getDoc(ref);
-      const local= loadLocal();
+    console.log("[user uid]", user.uid);
 
-      if (snap.exists() && Array.isArray(snap.data().stories)) {
-        saveLocal(snap.data().stories);
-        notifyStoriesUpdated();  // 🔔 đã kéo dữ liệu từ cloud về
-      } else if (local.length) {
-        await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
-        // sau khi setDoc xong Firestore sẽ bắn onSnapshot, listener bên dưới sẽ notify
-      }
-
-      if (unsubscribeCloud) unsubscribeCloud();
-      unsubscribeCloud = onSnapshot(ref, (s)=>{
-        if (s.exists() && Array.isArray(s.data().stories)) {
-          saveLocal(s.data().stories);
-          renderSidebarStories();
-          notifyStoriesUpdated(); // 🔔 realtime từ cloud
-        }
-      });
-
-    } else {
-      if (loginBtn)  { loginBtn.textContent="🔑 Đăng nhập"; loginBtn.title="Đăng nhập Google"; }
-      if (userInfoEl) userInfoEl.textContent="👤 User";
-      closePanel();
-      if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud=null; }
-      renderSidebarStories();
-      // signed out thì không phát sự kiện
+    const ref = userDocRef(user.uid);
+    let snap;
+    try {
+      snap = await getDoc(ref);
+    } catch (e) {
+      console.error("[firestore] getDoc error:", e?.code, e?.message);
     }
-  });
+
+    const local = loadLocal();
+
+    if (snap && snap.exists() && Array.isArray(snap.data().stories)) {
+      // có dữ liệu cloud -> ghi local và phát sự kiện cập nhật
+      const cloudStories = snap.data().stories;
+      console.log("[stories from cloud]", cloudStories.length);
+      saveLocal(cloudStories);
+      renderSidebarStories();
+      window.dispatchEvent(new Event("stories-updated"));
+    } else if (local.length) {
+      // cloud trống nhưng local có -> đẩy lên cloud
+      await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
+      console.log("[cloud init] uploaded local stories:", local.length);
+    } else {
+      console.log("[cloud empty + local empty]");
+    }
+
+    // realtime subscribe
+    if (unsubscribeCloud) unsubscribeCloud();
+    unsubscribeCloud = onSnapshot(ref, (s) => {
+      const arr = (s.exists() && Array.isArray(s.data().stories)) ? s.data().stories : [];
+      console.log("[snapshot] stories:", arr.length);
+      saveLocal(arr);
+      renderSidebarStories();
+      window.dispatchEvent(new Event("stories-updated"));
+    });
+
+  } else {
+    // signed out
+    const loginBtn   = document.getElementById("btn-login");
+    const userInfoEl = document.getElementById("user-info");
+    if (loginBtn)  { loginBtn.textContent = "🔑 Đăng nhập"; loginBtn.title = "Đăng nhập Google"; }
+    if (userInfoEl) userInfoEl.textContent = "👤 User";
+    const loginPanel = document.getElementById("login-panel");
+    if (loginPanel) loginPanel.style.display = "none";
+    if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud = null; }
+    renderSidebarStories();
+  }
+});
 });
 
 /* Render sidebar lần đầu (nếu có) */
