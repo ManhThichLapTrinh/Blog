@@ -180,6 +180,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Cập nhật UI theo trạng thái đăng nhập
   onAuthStateChanged(auth, async (user) => {
     console.log("[auth state]", user ? "signed in" : "signed out");
+    console.log('[user uid]', user?.uid);
+    console.log('[stories from cloud]', (snap.exists() && snap.data().stories?.length) || 0);
+
 
     if (user) {
       const name = user.displayName || user.email || "Đã đăng nhập";
