@@ -58,29 +58,22 @@ function renderSidebarStories() {
 const userDocRef = (uid) => doc(db, "users", uid);
 
 async function pushCloudIfLoggedIn(stories) {
-  // luôn cập nhật local + UI
   saveLocal(stories);
   renderSidebarStories();
-
   const user = auth.currentUser;
   if (user) {
     await setDoc(userDocRef(user.uid), { stories, updatedAt: serverTimestamp() });
   }
 }
 
-/* ========== Public API (CRUD) gắn lên window ========== */
-window.getStories = function getStories() {
-  return loadLocal();
-};
-window.saveStories = async function saveStories(stories) {
-  await pushCloudIfLoggedIn(stories);
-  return stories;
-};
-window.addStory = async function addStory({ title, intro = "", chapters = [] }) {
+/* ========== Public API (CRUD) ========== */
+window.getStories = () => loadLocal();
+window.saveStories = async (stories) => { await pushCloudIfLoggedIn(stories); return stories; };
+window.addStory = async ({ title, intro = "", chapters = [] }) => {
   const list = loadLocal();
   list.push({
-    title: (title || "").trim() || "Truyện không tên",
-    intro: (intro || "").trim(),
+    title: (title||"").trim() || "Truyện không tên",
+    intro: (intro||"").trim(),
     chapters: Array.isArray(chapters) ? chapters : [],
     createdAt: Date.now(),
     updatedAt: Date.now()
@@ -88,104 +81,83 @@ window.addStory = async function addStory({ title, intro = "", chapters = [] }) 
   await pushCloudIfLoggedIn(list);
   return list;
 };
-window.updateStory = async function updateStory(index, patch) {
+window.updateStory = async (index, patch) => {
   const list = loadLocal();
   if (!list[index]) return list;
   list[index] = { ...list[index], ...patch, updatedAt: Date.now() };
   await pushCloudIfLoggedIn(list);
   return list;
 };
-window.deleteStory = async function deleteStory(index) {
+window.deleteStory = async (index) => {
   const list = loadLocal();
-  if (index < 0 || index >= list.length) return list;
-  list.splice(index, 1);
+  if (index<0 || index>=list.length) return list;
+  list.splice(index,1);
   await pushCloudIfLoggedIn(list);
   return list;
 };
 
-/* ========== Auth UI gắn với header (nếu có) ========== */
-const loginBtn   = document.getElementById("btn-login");
-const loginPanel = document.getElementById("login-panel");
-const userInfoEl = document.getElementById("user-info");
-const logoutBtn  = document.getElementById("btn-logout");
+/* ========== Auth UI ========== */
+document.addEventListener("DOMContentLoaded", () => {
+  const loginBtn   = document.getElementById("btn-login");
+  const loginPanel = document.getElementById("login-panel");
+  const userInfoEl = document.getElementById("user-info");
+  const logoutBtn  = document.getElementById("btn-logout");
 
-function openPanel()  { if (loginPanel) loginPanel.style.display = "block"; }
-function closePanel() { if (loginPanel) loginPanel.style.display = "none"; }
-function togglePanel(){
-  if (!loginPanel) return;
-  loginPanel.style.display = (loginPanel.style.display === "none" || !loginPanel.style.display) ? "block" : "none";
-}
+  const closePanel = () => { if (loginPanel) loginPanel.style.display="none"; };
+  const togglePanel= () => {
+    if (!loginPanel) return;
+    loginPanel.style.display = (loginPanel.style.display==="none" || !loginPanel.style.display) ? "block" : "none";
+  };
 
-loginBtn?.addEventListener("click", () => {
-  if (auth.currentUser) {
-    togglePanel();
-  } else {
-    signInWithRedirect(auth, provider); // redirect: ổn định trên GitHub Pages/mobile
-  }
-});
-
-logoutBtn?.addEventListener("click", async () => {
-  await signOut(auth);
-  closePanel();
-});
-
-document.addEventListener("click", (e) => {
-  if (!loginPanel || !loginBtn) return;
-  const inside = loginPanel.contains(e.target) || loginBtn.contains(e.target);
-  if (!inside) closePanel();
-});
-
-/* ========== Redirect result & Auth state ========== */
-getRedirectResult(auth).catch(err => console.error("Login error:", err));
-
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const name = user.displayName || user.email || "Đã đăng nhập";
-    if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title = "Mở tài khoản / đăng xuất"; }
-    if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
-
-    // Kéo cloud về / nếu cloud trống thì đẩy local lên
-    const ref  = userDocRef(user.uid);
-    const snap = await getDoc(ref);
-    const local = loadLocal();
-
-    if (snap.exists() && Array.isArray(snap.data().stories)) {
-      saveLocal(snap.data().stories);
-    } else if (local.length) {
-      await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
+  loginBtn?.addEventListener("click", () => {
+    if (auth.currentUser) {
+      togglePanel();
+    } else {
+      signInWithRedirect(auth, provider);
     }
+  });
+  logoutBtn?.addEventListener("click", async () => { await signOut(auth); closePanel(); });
 
-    // Lắng nghe realtime
-    if (unsubscribeCloud) unsubscribeCloud();
-    unsubscribeCloud = onSnapshot(ref, (s) => {
-      if (s.exists() && Array.isArray(s.data().stories)) {
-        saveLocal(s.data().stories);
-        renderSidebarStories();
+  document.addEventListener("click", (e) => {
+    if (!loginPanel || !loginBtn) return;
+    const inside = loginPanel.contains(e.target) || loginBtn.contains(e.target);
+    if (!inside) closePanel();
+  });
+
+  getRedirectResult(auth).catch(err=>console.error("Login error:",err));
+
+  onAuthStateChanged(auth, async (user) => {
+    console.log("[auth state]", user ? "signed in" : "signed out");
+    if (user) {
+      const name = user.displayName || user.email || "Đã đăng nhập";
+      if (loginBtn)  { loginBtn.textContent = `👤 ${name}`; loginBtn.title="Mở tài khoản / đăng xuất"; }
+      if (userInfoEl) userInfoEl.textContent = `👤 ${name}`;
+
+      const ref = userDocRef(user.uid);
+      const snap= await getDoc(ref);
+      const local= loadLocal();
+      if (snap.exists() && Array.isArray(snap.data().stories)) {
+        saveLocal(snap.data().stories);
+      } else if (local.length) {
+        await setDoc(ref, { stories: local, updatedAt: serverTimestamp() });
       }
-    });
-  } else {
-    if (loginBtn)  { loginBtn.textContent = "🔑 Đăng nhập"; loginBtn.title = "Đăng nhập Google"; }
-    if (userInfoEl) userInfoEl.textContent = "👤 User";
-    closePanel();
-    if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud = null; }
-  }
-  renderSidebarStories();
+
+      if (unsubscribeCloud) unsubscribeCloud();
+      unsubscribeCloud = onSnapshot(ref, (s)=>{
+        if (s.exists() && Array.isArray(s.data().stories)) {
+          saveLocal(s.data().stories);
+          renderSidebarStories();
+        }
+      });
+    } else {
+      if (loginBtn)  { loginBtn.textContent="🔑 Đăng nhập"; loginBtn.title="Đăng nhập Google"; }
+      if (userInfoEl) userInfoEl.textContent="👤 User";
+      closePanel();
+      if (unsubscribeCloud) { unsubscribeCloud(); unsubscribeCloud=null; }
+    }
+    renderSidebarStories();
+  });
 });
 
-/* Render lần đầu khi mở trang */
+/* Render lần đầu */
 renderSidebarStories();
-
-/* ===== Gợi ý cấu hình Firebase Console =====
-Authentication → Settings → Authorized domains:
-  - manhthichlaptrinh.github.io
-  - localhost (nếu test)
-Firestore → Rules:
-  rules_version = '2';
-  service cloud.firestore {
-    match /databases/{database}/documents {
-      match /users/{userId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
-    }
-  }
-*/
