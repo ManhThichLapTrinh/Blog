@@ -25,18 +25,20 @@ let savedStories = (() => {
 let selectedStoryIndex = null;
 
 // ===== Utils =====
+function persistLocal() {
+  localStorage.setItem("storyData", JSON.stringify(savedStories));
+  window.dispatchEvent(new CustomEvent("stories-updated"));
+}
+
 async function save() {
+  // ⚠️ KHÔNG còn đẩy cả savedStories lên Cloud để tránh >1MB
   try {
-    if (typeof window.saveStories === "function") {
-      await window.saveStories(savedStories); // Firestore + local
-    } else {
-      localStorage.setItem("storyData", JSON.stringify(savedStories)); // local
-    }
+    persistLocal();
   } catch (e) {
-    console.error("Lưu dữ liệu lỗi:", e);
-    localStorage.setItem("storyData", JSON.stringify(savedStories));
+    console.error("Lưu dữ liệu lỗi (local):", e);
   }
 }
+
 const isoNow = () => new Date().toISOString();
 
 const NO_COVER_DATAURL =
@@ -74,11 +76,10 @@ async function fileToBase64Resized(file, opts = {}) {
 // Chuẩn hoá nguồn ảnh bìa (hỗ trợ nhiều schema)
 function getCoverSrc(story) {
   if (!story) return "";
-  const c = story.cover ?? story.image ?? story.thumbnail ?? "";
+  const c = story.cover ?? story.image ?? story.thumbnail ?? story.coverUrl ?? "";
   if (!c) return "";
   if (typeof c === "string") {
     if (c.startsWith("gs://")) return "";      // không load trực tiếp được
-    // data:image/*;base64,... hoặc http(s) đều OK
     try { return new URL(c, window.location.href).href; } catch { return c; }
   }
   if (typeof c === "object") return c.url || "";
@@ -150,6 +151,15 @@ function renderStories() {
       const name = story.title || "truyện";
       if (!confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) return;
 
+      // Cloud (tùy chọn)
+      try {
+        if (story.id && typeof window.deleteStory === "function") {
+          await window.deleteStory(story.id);
+        }
+      } catch (err) {
+        console.warn("Xóa trên cloud lỗi (bỏ qua):", err);
+      }
+
       const wasIndex = index;
       savedStories.splice(index, 1);
       await save();
@@ -198,7 +208,7 @@ function selectStory(index) {
   if (active) active.classList.add("active");
 }
 
-// ===== Thêm truyện mới (Base64 – không dùng Storage) =====
+// ===== Thêm truyện mới =====
 postStoryForm.addEventListener("submit", async function (e) {
   e.preventDefault();
   const title = document.getElementById("story-title").value.trim();
@@ -206,27 +216,55 @@ postStoryForm.addEventListener("submit", async function (e) {
   const createdAt = isoNow();
   if (!title || !intro) return;
 
-  let coverValue = "";
   const file = coverInput?.files?.[0] || null;
 
+  // Chuẩn bị 2 biến: coverUrl cho Cloud, coverBase64 cho local preview
+  let coverUrl = "";
+  let coverBase64 = "";
+
   try {
+    if (file && typeof window.uploadCover === "function") {
+      // ✅ Upload lên Storage/Cloudinary… -> chỉ lưu URL trên Cloud
+      coverUrl = await window.uploadCover(file); // bạn hiện thực trong firebase.js
+    }
+  } catch (err) {
+    console.warn("Upload cover lên cloud lỗi (bỏ qua):", err);
+  }
+
+  try {
+    // Luôn tạo bản base64 nén nhẹ cho local để xem offline
     if (file) {
-      // nén và convert sang base64 để lưu
-      coverValue = await fileToBase64Resized(file, { maxW: 512, maxH: 512, quality: 0.8 });
+      coverBase64 = await fileToBase64Resized(file, { maxW: 512, maxH: 512, quality: 0.8 });
     } else if (coverPreview?.dataset?.src) {
-      coverValue = coverPreview.dataset.src; // base64 preview sẵn
+      coverBase64 = coverPreview.dataset.src;
     }
   } catch (err) {
     console.warn("Convert cover to base64 lỗi:", err);
   }
 
-  if (typeof window.addStory === "function") {
-    await window.addStory({ title, intro, cover: coverValue, chapters: [] });
-    savedStories = window.getStories(); // lấy bản mới nhất
-  } else {
-    savedStories.unshift({ title, intro, cover: coverValue, createdAt, chapters: [] });
-    await save();
+  // Cloud: ghi metadata story nhỏ gọn (KHÔNG chứa chapters & KHÔNG chứa base64)
+  let cloudStoryId = null;
+  try {
+    if (typeof window.addStory === "function") {
+      const cloud = await window.addStory({ title, intro, coverUrl, createdAt });
+      // addStory có thể trả về id; nếu không, cố đọc thuộc tính cloud.id
+      cloudStoryId = cloud?.id || cloud?.storyId || null;
+    }
+  } catch (err) {
+    console.warn("Ghi story lên cloud lỗi (bỏ qua):", err);
   }
+
+  // Local: thêm vào bộ nhớ để hiển thị, có thể giữ base64 (chỉ lưu LOCAL)
+  savedStories.unshift({
+    id: cloudStoryId || undefined,      // nếu có
+    title,
+    intro,
+    coverUrl: coverUrl || undefined,    // ưu tiên URL nếu có
+    cover: !coverUrl ? coverBase64 : undefined, // nếu đã có URL thì khỏi giữ base64 nặng
+    createdAt,
+    chapters: []
+  });
+  await save();
 
   renderStories();
   postStoryForm.reset();
@@ -249,7 +287,7 @@ if (coverInput && coverPreview) {
     try {
       const dataUrl = await fileToBase64Resized(file, { maxW: 256, maxH: 256, quality: 0.8 });
       coverPreview.innerHTML = `<img src="${dataUrl}" alt="Bìa truyện">`;
-      coverPreview.dataset.src = dataUrl; // base64 cho submit
+      coverPreview.dataset.src = dataUrl; // base64 cho submit (local)
     } catch (e) {
       console.warn("Preview cover lỗi:", e);
       coverPreview.textContent = "Không xem trước được";
@@ -296,12 +334,23 @@ function renderChapters() {
     });
 
     li.querySelector(".chapter-delete").addEventListener("click", async () => {
-      if (confirm(`Xóa chương "${chap.title}"?`)) {
-        story.chapters.splice(i, 1);
-        story.updatedAt = isoNow();
-        await save();
-        renderChapters();
+      if (!confirm(`Xóa chương "${chap.title}"?`)) return;
+
+      // Cloud (tùy chọn)
+      const storyObj = savedStories[selectedStoryIndex];
+      try {
+        if (storyObj?.id && chap.id && typeof window.deleteChapter === "function") {
+          await window.deleteChapter(storyObj.id, chap.id);
+        }
+      } catch (err) {
+        console.warn("Xóa chapter trên cloud lỗi (bỏ qua):", err);
       }
+
+      // Local
+      story.chapters.splice(i, 1);
+      story.updatedAt = isoNow();
+      await save();
+      renderChapters();
     });
 
     chapterList.appendChild(li);
@@ -370,6 +419,62 @@ chapterForm.addEventListener("submit", async function (e) {
   const editIdxRaw = editIndexInput.value;
   const isEditing = editIdxRaw !== "";
 
+  // ====== Cloud (nếu có) — mỗi CHAPTER là 1 document riêng ======
+  const storyId = story.id || null;
+  if (storyId && typeof window.addChapter === "function") {
+    try {
+      if (isEditing) {
+        const idx = Number(editIdxRaw);
+        const chap = story.chapters?.[idx];
+        if (chap?.id && typeof window.updateChapter === "function") {
+          await window.updateChapter(storyId, chap.id, {
+            title: autoTitle,
+            content: body,
+            updatedAt: isoNow(),
+          });
+        }
+        // Local mirror
+        if (story.chapters && story.chapters[idx]) {
+          story.chapters[idx].title = autoTitle;
+          story.chapters[idx].content = body;
+          story.chapters[idx].updatedAt = isoNow();
+        }
+      } else {
+        const created = isoNow();
+        // Cloud tạo doc -> trả về id
+        const res = await window.addChapter(storyId, {
+          title: autoTitle,
+          content: body,
+          createdAt: created,
+          updatedAt: created,
+        });
+        const newId = res?.id || null;
+
+        if (!Array.isArray(story.chapters)) story.chapters = [];
+        story.chapters.push({
+          id: newId || undefined,
+          title: autoTitle,
+          content: body,
+          createdAt: created,
+          updatedAt: created,
+        });
+      }
+      story.updatedAt = isoNow();
+      await save();
+      renderChapters();
+
+      chapterForm.hidden = true;
+      editIndexInput.value = "";
+      chapterTitleInput.value = "";
+      chapterContentInput.value = "";
+      return; // kết thúc nhánh cloud
+    } catch (err) {
+      console.warn("Ghi chapter lên cloud lỗi (tiếp tục local):", err);
+      // fallthrough xuống local
+    }
+  }
+
+  // ====== Local fallback ======
   if (isEditing) {
     const idx = Number(editIdxRaw);
     if (story.chapters && story.chapters[idx]) {
