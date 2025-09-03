@@ -17,7 +17,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyA7Q7ivZIm3L4w2p7Cwp28PZDPfREv6Er8",
   authDomain: "blog-ab9bb.firebaseapp.com",
   projectId: "blog-ab9bb",
-  storageBucket: "blog-ab9bb.firebasestorage.app", // chưa dùng Storage ở bản này
+  storageBucket: "blog-ab9bb.firebasestorage.app", // không dùng Storage trong bản base64
   messagingSenderId: "160345742636",
   appId: "1:160345742636:web:4fc69a7a7d0c7a3e356089",
   measurementId: "G-Y7JGMGGKCT",
@@ -84,10 +84,19 @@ window.saveStories = async (stories) => {
   return stories;
 };
 
-/* Upload cover: tuỳ bạn hiện thực (Storage/Cloudinary). Ở đây trả rỗng để UI bỏ qua. */
+/* === Upload cover: dùng base64, không dùng Storage ===
+ * Trả về chuỗi dataURL để UI hiển thị/giữ LOCAL.
+ * LƯU Ý: addStory bên dưới sẽ không ghi chuỗi base64 này vào Firestore.
+ */
 window.uploadCover = async (file) => {
-  console.warn("[uploadCover] Chưa cấu hình Storage/Cloudinary. Trả về ''.");
-  return ""; // → UI sẽ dùng base64 local cho preview, không ghi lên cloud
+  if (!file) return "";
+  // Nếu muốn nén/resize thêm, bạn có thể chuyển qua Canvas; ở đây đọc thẳng base64.
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);         // "data:image/...;base64,...."
+    reader.onerror = (e) => reject(e);
+    reader.readAsDataURL(file);
+  });
 };
 
 /* === Story (Cloud: metadata-only) === */
@@ -95,11 +104,14 @@ window.addStory = async ({ title, intro = "", coverUrl = "", createdAt = new Dat
   const user = auth.currentUser;
   if (!user) return { id: null };
 
+  // 🔒 Không cho coverUrl là base64 ghi vào Firestore
+  const sanitizedCoverUrl = (typeof coverUrl === "string" && /^data:image\//i.test(coverUrl)) ? "" : (coverUrl || "");
+
   const payload = {
     ownerId: user.uid,
     title: (title||"").trim() || "Truyện không tên",
     intro: (intro||"").trim(),
-    coverUrl: coverUrl || "",
+    coverUrl: sanitizedCoverUrl,   // nếu là base64 -> để chuỗi rỗng
     createdAt,
     updatedAt: serverTimestamp()
   };
@@ -114,7 +126,10 @@ window.updateStoryMeta = async (storyId, patch) => {
   const safe = {};
   if (typeof patch?.title === "string")   safe.title = patch.title.trim();
   if (typeof patch?.intro === "string")   safe.intro = patch.intro.trim();
-  if (typeof patch?.coverUrl === "string") safe.coverUrl = patch.coverUrl;
+  if (typeof patch?.coverUrl === "string") {
+    // cũng chặn base64 khi update
+    safe.coverUrl = /^data:image\//i.test(patch.coverUrl) ? "" : patch.coverUrl;
+  }
   safe.updatedAt = serverTimestamp();
   await updateDoc(storyDocRef(user.uid, storyId), safe);
 };
@@ -203,7 +218,8 @@ function mergeCloudStoriesIntoLocal(cloudMetas) {
       title: meta.title || cur?.title || "Truyện không tên",
       intro: meta.intro ?? cur?.intro ?? "",
       coverUrl: meta.coverUrl ?? cur?.coverUrl,
-      cover: meta.coverUrl ? undefined : cur?.cover, // có URL thì bỏ base64 nặng
+      // nếu có URL cloud thì bỏ base64 nặng ở local
+      cover: meta.coverUrl ? undefined : cur?.cover,
       createdAt: meta.createdAt || cur?.createdAt || new Date().toISOString(),
       updatedAt: meta.updatedAt || cur?.updatedAt || new Date().toISOString(),
       chapters: Array.isArray(cur?.chapters) ? cur.chapters : []
@@ -233,19 +249,17 @@ async function migrateLocalToCloudForUser(uid) {
   }
 
   for (const s of unsynced) {
-    // 1) Tạo story metadata trên cloud
     const meta = {
       ownerId: uid,
       title: (s.title || "").trim() || "Truyện không tên",
       intro: (s.intro || "").trim(),
-      coverUrl: s.coverUrl || "",
+      coverUrl: s.coverUrl || "", // local có thể giữ base64 ở field 'cover' – KHÔNG đẩy
       createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date().toISOString(),
       updatedAt: serverTimestamp(),
     };
     const newStoryRef = await addDoc(storiesColRef(uid), meta);
     s.id = newStoryRef.id;
 
-    // 2) Đẩy toàn bộ chapters local (nếu có) lên subcollection
     if (Array.isArray(s.chapters)) {
       for (const ch of s.chapters) {
         await addDoc(chaptersCol(uid, s.id), {
@@ -319,6 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loginPanel.style.display = (loginPanel.style.display==="none" || !loginPanel.style.display) ? "block" : "none";
   };
 
+  // Đăng nhập: popup → fallback redirect
   loginBtn?.addEventListener("click", async () => {
     if (auth.currentUser) { togglePanel(); return; }
     try {
@@ -332,21 +347,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Đăng xuất
   logoutBtn?.addEventListener("click", async () => {
     await signOut(auth);
     closePanel();
   });
 
+  // Đóng panel khi click ngoài
   document.addEventListener("click", (e) => {
     if (!loginPanel || !loginBtn) return;
     const inside = loginPanel.contains(e.target) || loginBtn.contains(e.target);
     if (!inside) closePanel();
   });
 
+  // Kết quả sau redirect
   getRedirectResult(auth).catch(err =>
     console.error("[login] redirect error:", err?.code, err?.message)
   );
 
+  // Theo dõi trạng thái đăng nhập
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       const name = user.displayName || user.email || "Đã đăng nhập";
