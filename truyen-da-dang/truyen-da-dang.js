@@ -58,7 +58,7 @@ const shorten = (s = "", max = 160) => (s.length > max ? s.slice(0, max - 1) + "
 function renderCard(story, index){
   const title  = (story?.title || `Truyện #${index+1}`).toString();
   const stats  = calcStoryStats(story);
-  const href = `/doc-truyen/doc-truyen.html?story=${index}&chapter=0`;
+  const href = `../doc-truyen/doc-truyen.html?story=${index}&chapter=0`;
 
   const author = story?.author || story?.tacgia || '';
   const genre  = story?.genre  || story?.theloai || '';

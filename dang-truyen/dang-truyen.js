@@ -47,30 +47,38 @@ const NO_COVER_DATAURL =
     '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"><rect width="100%" height="100%" fill="#e9f3ec"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="10" fill="#6b8a7a">No Cover</text></svg>'
   );
 
-// ==== Helper: chuyển file ảnh -> base64, có nén kích thước ====
-// opts: { maxW, maxH, quality }
+// ==== Helper: chuyển file ảnh -> base64, chuẩn hoá kích thước COVER 600×800 ====
+// opts: { outW, outH, quality }
 async function fileToBase64Resized(file, opts = {}) {
-  const { maxW = 512, maxH = 512, quality = 0.8 } = opts;
-  const createBitmap = "createImageBitmap" in window
-    ? window.createImageBitmap(file)
-    : new Promise((res, rej) => {
-        const img = new Image();
-        img.onload = () => res(img);
-        img.onerror = rej;
-        img.src = URL.createObjectURL(file);
-      });
-  const bitmap = await createBitmap;
-  const ratio = Math.min(maxW / bitmap.width, maxH / bitmap.height, 1);
-  const w = Math.max(1, Math.round(bitmap.width * ratio));
-  const h = Math.max(1, Math.round(bitmap.height * ratio));
+  const { outW = 600, outH = 800, quality = 0.9 } = opts;
 
+  // nguồn ảnh
+  let bitmap;
+  if ("createImageBitmap" in window) {
+    bitmap = await createImageBitmap(file);
+  } else {
+    bitmap = await new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  // canvas đích 600×800
   const canvas = document.createElement("canvas");
-  canvas.width = w; canvas.height = h;
+  canvas.width = outW; canvas.height = outH;
   const ctx = canvas.getContext("2d");
-  ctx.drawImage(bitmap, 0, 0, w, h);
 
-  const type = /png/i.test(file.type) ? "image/png" : "image/jpeg";
-  return canvas.toDataURL(type, quality); // -> "data:image/jpeg;base64,..."
+  // scale theo COVER (đầy khung, có crop)
+  const ratio = Math.max(outW / bitmap.width, outH / bitmap.height);
+  const drawW = Math.round(bitmap.width * ratio);
+  const drawH = Math.round(bitmap.height * ratio);
+  const dx = Math.round((outW - drawW) / 2);
+  const dy = Math.round((outH - drawH) / 2);
+
+  ctx.drawImage(bitmap, dx, dy, drawW, drawH);
+  return canvas.toDataURL("image/jpeg", quality);
 }
 
 // Chuẩn hoá nguồn ảnh bìa (hỗ trợ nhiều schema)
@@ -98,6 +106,31 @@ function safeThumbElement(story) {
   img.src = src || NO_COVER_DATAURL;
   img.onerror = () => { img.src = NO_COVER_DATAURL; };
   return img;
+}
+
+// ===== File picker ẩn để đổi thumbnail =====
+let hiddenThumbInput = null;
+function ensureHiddenThumbInput() {
+  if (hiddenThumbInput) return hiddenThumbInput;
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+  input.style.display = "none";
+  document.body.appendChild(input);
+  hiddenThumbInput = input;
+  return input;
+}
+function pickImageFile() {
+  const input = ensureHiddenThumbInput();
+  return new Promise((resolve) => {
+    const handler = () => {
+      input.removeEventListener("change", handler);
+      resolve(input.files?.[0] || null);
+      input.value = "";
+    };
+    input.addEventListener("change", handler, { once: true });
+    input.click();
+  });
 }
 
 // ===== Render danh sách truyện =====
@@ -142,6 +175,51 @@ function renderStories() {
     // cột 3: actions
     const act = document.createElement("div");
     act.className = "story-actions";
+
+    // 🖼️ Đổi thumbnail
+    const changeThumbBtn = document.createElement("button");
+    changeThumbBtn.className = "change-thumb-btn";
+    changeThumbBtn.title = "Đổi ảnh bìa (thumbnail)";
+    changeThumbBtn.textContent = "🖼️";
+    changeThumbBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      // 1) Chọn file -> chuẩn hoá 600×800 -> lưu local base64
+      const file = await pickImageFile();
+      if (file) {
+        try {
+          const dataUrl = await fileToBase64Resized(file, { outW: 600, outH: 800, quality: 0.9 });
+          story.cover = dataUrl;
+          story.updatedAt = isoNow();
+          await save();
+          renderStories();
+          if (selectedStoryIndex === index) selectStory(index);
+        } catch (err) {
+          alert("Không xử lý được ảnh bìa mới.");
+        }
+      }
+      // 2) (tùy chọn) Nhập URL online để sync Cloud (không bao giờ đẩy base64)
+      if (story.id && typeof window.updateStoryMeta === "function") {
+        const url = prompt("Nếu có URL ảnh bìa online, dán vào đây (để trống nếu không):", story.coverUrl || "");
+        if (url != null) {
+          const trimmed = url.trim();
+          if (trimmed && /^https?:\/\//i.test(trimmed)) {
+            try {
+              await window.updateStoryMeta(story.id, { coverUrl: trimmed });
+              story.coverUrl = trimmed;
+              story.updatedAt = isoNow();
+              await save();
+              renderStories();
+              if (selectedStoryIndex === index) selectStory(index);
+            } catch (e2) {
+              console.warn("update coverUrl failed:", e2);
+              alert("Không cập nhật được coverUrl lên Cloud.");
+            }
+          }
+        }
+      }
+    });
+
+    // 🗑️ Xoá truyện
     const delBtn = document.createElement("button");
     delBtn.className = "delete-story-btn";
     delBtn.title = "Xóa truyện";
@@ -151,7 +229,7 @@ function renderStories() {
       const name = story.title || "truyện";
       if (!confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) return;
 
-      // Cloud (tùy chọn) — đã được vá trong firebase.js để tránh 400
+      // Cloud (tùy chọn)
       try {
         if (story.id && typeof window.deleteStory === "function") {
           await window.deleteStory(story.id);
@@ -173,6 +251,8 @@ function renderStories() {
       }
       renderStories();
     });
+
+    act.appendChild(changeThumbBtn);
     act.appendChild(delBtn);
 
     // ghép vào li
@@ -224,16 +304,16 @@ postStoryForm.addEventListener("submit", async function (e) {
 
   try {
     if (file && typeof window.uploadCover === "function") {
-      coverUrl = await window.uploadCover(file); // hiện đang stub trong firebase.js
+      coverUrl = await window.uploadCover(file); // stub trong firebase.js (nếu có)
     }
   } catch (err) {
     console.warn("Upload cover lên cloud lỗi (bỏ qua):", err);
   }
 
   try {
-    // base64 nén nhẹ cho local/offline
+    // base64 chuẩn 600×800 cho local/offline
     if (file) {
-      coverBase64 = await fileToBase64Resized(file, { maxW: 512, maxH: 512, quality: 0.8 });
+      coverBase64 = await fileToBase64Resized(file, { outW: 600, outH: 800, quality: 0.9 });
     } else if (coverPreview?.dataset?.src) {
       coverBase64 = coverPreview.dataset.src;
     }
@@ -241,7 +321,7 @@ postStoryForm.addEventListener("submit", async function (e) {
     console.warn("Convert cover to base64 lỗi:", err);
   }
 
-  // Cloud: ghi metadata story nhỏ gọn (không chapters, không base64)
+  // Cloud: ghi metadata story nhỏ gọn (không base64)
   let cloudStoryId = null;
   try {
     if (typeof window.addStory === "function") {
@@ -273,7 +353,7 @@ postStoryForm.addEventListener("submit", async function (e) {
   selectStory(0);
 });
 
-// Preview ảnh bìa khi chọn file (dùng nén nhỏ để preview mượt)
+// Preview ảnh bìa khi chọn file (render khung đúng 600×800 để thấy kết quả)
 if (coverInput && coverPreview) {
   coverInput.addEventListener("change", async () => {
     const file = coverInput.files && coverInput.files[0];
@@ -283,8 +363,8 @@ if (coverInput && coverPreview) {
       return;
     }
     try {
-      const dataUrl = await fileToBase64Resized(file, { maxW: 256, maxH: 256, quality: 0.8 });
-      coverPreview.innerHTML = `<img src="${dataUrl}" alt="Bìa truyện">`;
+      const dataUrl = await fileToBase64Resized(file, { outW: 600, outH: 800, quality: 0.9 });
+      coverPreview.innerHTML = `<img src="${dataUrl}" alt="Bìa truyện" width="150" height="200" style="aspect-ratio:3/4;object-fit:cover;border-radius:8px;">`;
       coverPreview.dataset.src = dataUrl; // base64 cho submit (local)
     } catch (e) {
       console.warn("Preview cover lỗi:", e);
