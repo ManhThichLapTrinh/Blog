@@ -119,18 +119,45 @@ window.updateStoryMeta = async (storyId, patch) => {
   await updateDoc(storyDocRef(user.uid, storyId), safe);
 };
 
-// Xoá story + toàn bộ chapters (cloud)
+/* === Delete story (đã vá: kiểm tra chủ sở hữu để tránh 400) === */
 window.deleteStory = async (storyId) => {
   const user = auth.currentUser;
   if (!user || !storyId) return;
 
-  // Xoá toàn bộ chapters trước (đơn giản: quét rồi xoá)
-  const qs = await getDocs(chaptersCol(user.uid, storyId));
-  const tasks = [];
-  qs.forEach((d) => tasks.push(deleteDoc(chapterDocRef(user.uid, storyId, d.id))));
-  await Promise.allSettled(tasks);
+  const sRef = storyDocRef(user.uid, storyId);
 
-  await deleteDoc(storyDocRef(user.uid, storyId));
+  // Kiểm tra doc tồn tại & thuộc UID hiện tại
+  try {
+    const snap = await getDoc(sRef);
+    if (!snap.exists()) {
+      console.warn("[deleteStory] Story không tồn tại dưới users/", user.uid, "/stories/", storyId);
+      return;
+    }
+    const data = snap.data() || {};
+    if (data.ownerId && data.ownerId !== user.uid) {
+      console.warn("[deleteStory] Khác chủ UID. Bỏ qua xoá cloud.", { ownerId: data.ownerId, uid: user.uid });
+      return;
+    }
+  } catch (e) {
+    console.warn("[deleteStory] getDoc lỗi, bỏ qua xoá cloud:", e?.code, e?.message);
+    return;
+  }
+
+  // Xoá chapters trước (bọc try/catch để không chặn xoá story)
+  try {
+    const qs = await getDocs(chaptersCol(user.uid, storyId));
+    const tasks = [];
+    qs.forEach((d) => tasks.push(deleteDoc(chapterDocRef(user.uid, storyId, d.id))));
+    await Promise.allSettled(tasks);
+  } catch (e) {
+    console.warn("[deleteStory] getDocs/delete chapters lỗi (tiếp tục xoá story):", e?.code, e?.message);
+  }
+
+  try {
+    await deleteDoc(sRef);
+  } catch (e) {
+    console.warn("[deleteStory] delete story lỗi:", e?.code, e?.message);
+  }
 };
 
 /* === Chapter (mỗi chapter là 1 document) === */
@@ -162,11 +189,10 @@ window.deleteChapter = async (storyId, chapterId) => {
   await deleteDoc(chapterDocRef(user.uid, storyId, chapterId));
 };
 
-/* ===== Optional: realtime sync metadata stories -> merge vào local (KHÔNG đè chapters) ===== */
+/* ===== Realtime: stories metadata -> merge local (KHÔNG đè chapters) ===== */
 function mergeCloudStoriesIntoLocal(cloudMetas) {
   const local = loadLocal();
 
-  // Map theo id để merge metadata mà giữ nguyên chapters local
   const byIdLocal = new Map();
   local.forEach((s) => { if (s.id) byIdLocal.set(s.id, s); });
 
@@ -177,15 +203,13 @@ function mergeCloudStoriesIntoLocal(cloudMetas) {
       title: meta.title || cur?.title || "Truyện không tên",
       intro: meta.intro ?? cur?.intro ?? "",
       coverUrl: meta.coverUrl ?? cur?.coverUrl,
-      // Nếu có coverUrl thì bỏ cover base64 nặng ở local
-      cover: meta.coverUrl ? undefined : cur?.cover,
+      cover: meta.coverUrl ? undefined : cur?.cover, // có URL thì bỏ base64 nặng
       createdAt: meta.createdAt || cur?.createdAt || new Date().toISOString(),
       updatedAt: meta.updatedAt || cur?.updatedAt || new Date().toISOString(),
       chapters: Array.isArray(cur?.chapters) ? cur.chapters : []
     };
   });
 
-  // Giữ lại các local stories chưa có trên cloud (user offline tạo)
   const leftover = local.filter(s => !s.id);
   const finalList = [...(cloudMetas.length ? merged : []), ...leftover];
 
@@ -194,11 +218,10 @@ function mergeCloudStoriesIntoLocal(cloudMetas) {
   notifyStoriesUpdated();
 }
 
-/* ==== Migration: đẩy local (chưa có id) lên Cloud cho account hiện tại ==== */
+/* ==== Migration: local (không id) -> Cloud cho account hiện tại ==== */
 async function migrateLocalToCloudForUser(uid) {
   if (!uid) return;
 
-  // Chặn migrate lặp lại cho cùng user
   const MIG_KEY = `migrated_for_${uid}`;
   if (localStorage.getItem(MIG_KEY) === "1") return;
 
@@ -220,7 +243,7 @@ async function migrateLocalToCloudForUser(uid) {
       updatedAt: serverTimestamp(),
     };
     const newStoryRef = await addDoc(storiesColRef(uid), meta);
-    s.id = newStoryRef.id; // gắn id mới vào local
+    s.id = newStoryRef.id;
 
     // 2) Đẩy toàn bộ chapters local (nếu có) lên subcollection
     if (Array.isArray(s.chapters)) {
@@ -266,7 +289,7 @@ async function hydrateChaptersFromCloud(uid, metaList) {
 
       const target = byId.get(meta.id);
       if (target) {
-        target.chapters = chapters; // ghi đè bằng bản đã chuẩn trên cloud
+        target.chapters = chapters;
         changed = true;
       } else {
         local.unshift({ ...meta, chapters });
@@ -332,7 +355,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (loginBtnEl) { loginBtnEl.textContent = `👤 ${name}`; loginBtnEl.title = "Mở tài khoản / đăng xuất"; }
       if (userInfoEl2) userInfoEl2.textContent = `👤 ${name}`;
 
-      // Tạo hồ sơ user nếu chưa có (nhẹ, chỉ để đánh dấu)
+      // Ensure user doc
       try {
         const ref = userDocRef(user.uid);
         const snap = await getDoc(ref);
@@ -346,8 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Migration: đẩy local (không id) lên Cloud
       await migrateLocalToCloudForUser(user.uid);
 
-      // Realtime: nghe danh sách stories metadata, merge vào local (giữ chapters local),
-      // rồi hydrate chapters từ cloud để đa thiết bị có nội dung đầy đủ.
+      // Realtime: nghe danh sách stories metadata -> merge -> hydrate chapters
       if (unsubscribeCloud) unsubscribeCloud();
       const qStories = query(storiesColRef(user.uid), orderBy("createdAt", "desc"));
       unsubscribeCloud = onSnapshot(qStories, (qs) => {

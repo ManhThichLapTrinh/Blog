@@ -31,7 +31,7 @@ function persistLocal() {
 }
 
 async function save() {
-  // ⚠️ KHÔNG còn đẩy cả savedStories lên Cloud để tránh >1MB
+  // Chỉ lưu LOCAL để tránh vượt 1MB khi sync Cloud
   try {
     persistLocal();
   } catch (e) {
@@ -79,7 +79,7 @@ function getCoverSrc(story) {
   const c = story.cover ?? story.image ?? story.thumbnail ?? story.coverUrl ?? "";
   if (!c) return "";
   if (typeof c === "string") {
-    if (c.startsWith("gs://")) return "";      // không load trực tiếp được
+    if (c.startsWith("gs://")) return ""; // không load trực tiếp được
     try { return new URL(c, window.location.href).href; } catch { return c; }
   }
   if (typeof c === "object") return c.url || "";
@@ -151,7 +151,7 @@ function renderStories() {
       const name = story.title || "truyện";
       if (!confirm(`Bạn có muốn xóa "${name}"? Toàn bộ chương sẽ bị xóa.`)) return;
 
-      // Cloud (tùy chọn)
+      // Cloud (tùy chọn) — đã được vá trong firebase.js để tránh 400
       try {
         if (story.id && typeof window.deleteStory === "function") {
           await window.deleteStory(story.id);
@@ -218,21 +218,20 @@ postStoryForm.addEventListener("submit", async function (e) {
 
   const file = coverInput?.files?.[0] || null;
 
-  // Chuẩn bị 2 biến: coverUrl cho Cloud, coverBase64 cho local preview
+  // coverUrl cho Cloud, coverBase64 cho local preview
   let coverUrl = "";
   let coverBase64 = "";
 
   try {
     if (file && typeof window.uploadCover === "function") {
-      // ✅ Upload lên Storage/Cloudinary… -> chỉ lưu URL trên Cloud
-      coverUrl = await window.uploadCover(file); // bạn hiện thực trong firebase.js
+      coverUrl = await window.uploadCover(file); // hiện đang stub trong firebase.js
     }
   } catch (err) {
     console.warn("Upload cover lên cloud lỗi (bỏ qua):", err);
   }
 
   try {
-    // Luôn tạo bản base64 nén nhẹ cho local để xem offline
+    // base64 nén nhẹ cho local/offline
     if (file) {
       coverBase64 = await fileToBase64Resized(file, { maxW: 512, maxH: 512, quality: 0.8 });
     } else if (coverPreview?.dataset?.src) {
@@ -242,25 +241,24 @@ postStoryForm.addEventListener("submit", async function (e) {
     console.warn("Convert cover to base64 lỗi:", err);
   }
 
-  // Cloud: ghi metadata story nhỏ gọn (KHÔNG chứa chapters & KHÔNG chứa base64)
+  // Cloud: ghi metadata story nhỏ gọn (không chapters, không base64)
   let cloudStoryId = null;
   try {
     if (typeof window.addStory === "function") {
       const cloud = await window.addStory({ title, intro, coverUrl, createdAt });
-      // addStory có thể trả về id; nếu không, cố đọc thuộc tính cloud.id
       cloudStoryId = cloud?.id || cloud?.storyId || null;
     }
   } catch (err) {
     console.warn("Ghi story lên cloud lỗi (bỏ qua):", err);
   }
 
-  // Local: thêm vào bộ nhớ để hiển thị, có thể giữ base64 (chỉ lưu LOCAL)
+  // Local: thêm vào bộ nhớ; giữ base64 nếu chưa có URL
   savedStories.unshift({
-    id: cloudStoryId || undefined,      // nếu có
+    id: cloudStoryId || undefined,
     title,
     intro,
-    coverUrl: coverUrl || undefined,    // ưu tiên URL nếu có
-    cover: !coverUrl ? coverBase64 : undefined, // nếu đã có URL thì khỏi giữ base64 nặng
+    coverUrl: coverUrl || undefined,
+    cover: !coverUrl ? coverBase64 : undefined,
     createdAt,
     chapters: []
   });
@@ -336,7 +334,7 @@ function renderChapters() {
     li.querySelector(".chapter-delete").addEventListener("click", async () => {
       if (!confirm(`Xóa chương "${chap.title}"?`)) return;
 
-      // Cloud (tùy chọn)
+      // Cloud (tùy chọn) — chỉ khi có id
       const storyObj = savedStories[selectedStoryIndex];
       try {
         if (storyObj?.id && chap.id && typeof window.deleteChapter === "function") {
